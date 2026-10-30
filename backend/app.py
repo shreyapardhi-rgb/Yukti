@@ -1,5 +1,6 @@
 """Flask API for Yukti. Run: python app.py  ->  http://127.0.0.1:5000"""
 import base64
+import math
 import os
 from flask import Flask, jsonify, request, send_from_directory
 
@@ -100,6 +101,35 @@ def _parse_int(val, name, min_val=None, max_val=None, default=None):
             raise core.MeruError(f"'{name}' must be a valid integer", code="INVALID_INTEGER", field=name)
     else:
         raise core.MeruError(f"'{name}' must be an integer", code="INVALID_TYPE", field=name)
+
+    if min_val is not None and val < min_val:
+        raise core.MeruError(f"'{name}' must be at least {min_val}", code="VALUE_OUT_OF_RANGE", field=name)
+    if max_val is not None and val > max_val:
+        raise core.MeruError(f"'{name}' must be at most {max_val}", code="VALUE_OUT_OF_RANGE", field=name)
+    return val
+
+
+def _parse_float(val, name, min_val=None, max_val=None, default=None):
+    """Safely parses and bounds a float from query string or JSON."""
+    if val is None:
+        if default is not None:
+            return default
+        raise core.MeruError(f"'{name}' is required", code="MISSING_PARAMETER", field=name)
+    if isinstance(val, bool):
+        raise core.MeruError(f"'{name}' must be a number, not a boolean", code="INVALID_TYPE", field=name)
+    if isinstance(val, (int, float)):
+        val = float(val)
+    elif isinstance(val, str):
+        val = val.strip()
+        try:
+            val = float(val)
+        except ValueError:
+            raise core.MeruError(f"'{name}' must be a valid number", code="INVALID_FLOAT", field=name)
+    else:
+        raise core.MeruError(f"'{name}' must be a number", code="INVALID_TYPE", field=name)
+
+    if math.isnan(val) or math.isinf(val):
+        raise core.MeruError(f"'{name}' cannot be NaN or Infinity", code="INVALID_FLOAT", field=name)
 
     if min_val is not None and val < min_val:
         raise core.MeruError(f"'{name}' must be at least {min_val}", code="VALUE_OUT_OF_RANGE", field=name)
@@ -287,6 +317,145 @@ def unpack():
     if d.get("as_text"):
         out["text"] = core.bits_to_text(bits)
     return jsonify(out)
+
+
+@app.get("/api/info")
+def info():
+    return jsonify({
+        "name": "Yukti (MeruCode)",
+        "version": "2.0.0",
+        "description": "Lossless combinatorial bitstream codec inspired by Pingala's Chhandas-Shastra",
+        "limits": {
+            "max_input_bits": MAX_INPUT_BITS,
+            "max_output_bits": core.MAX_OUTPUT_BITS,
+            "max_content_length_bytes": MAX_CONTENT_LENGTH,
+            "max_block_size": core.MAX_BLOCK,
+            "max_matra": 16,
+            "max_prastara_n": 16
+        },
+        "header_layout": {
+            "v1_raw": {
+                "total_bits": 40,
+                "fields": [
+                    {"name": "original_length", "bits": 32, "type": "uint32 BE", "description": "Original stream length in bits"},
+                    {"name": "block_size", "bits": 8, "type": "uint8", "description": "Block size n (1..64)"}
+                ]
+            },
+            "v2_container": {
+                "magic": "MERU",
+                "version": 2,
+                "header_size_bytes": core.CONTAINER_HEADER_SIZE,
+                "fields": [
+                    {"name": "magic", "bytes": 4, "value": "MERU"},
+                    {"name": "version", "bytes": 1, "value": 2},
+                    {"name": "flags", "bytes": 1, "value": 0},
+                    {"name": "original_bit_length", "bytes": 4, "type": "uint32 BE"},
+                    {"name": "block_size", "bytes": 1, "type": "uint8"},
+                    {"name": "payload_bit_length", "bytes": 4, "type": "uint32 BE"},
+                    {"name": "original_crc32", "bytes": 4, "type": "uint32 BE"},
+                    {"name": "payload", "bytes": "variable", "description": "Rank/k encoded stream"}
+                ]
+            }
+        },
+        "endpoints": [
+            {"method": "GET", "path": "/api/health", "description": "Service healthcheck and version"},
+            {"method": "GET", "path": "/api/info", "description": "API metadata, limits, and header specifications"},
+            {"method": "GET", "path": "/api/docs", "description": "Interactive HTML documentation"},
+            {"method": "POST", "path": "/api/encode", "description": "Encode bitstream or text into MeruCode"},
+            {"method": "POST", "path": "/api/decode", "description": "Decode MeruCode bitstream into bits or text"},
+            {"method": "POST", "path": "/api/pack", "description": "Package bits/text into robust .meru v2 container with CRC32"},
+            {"method": "POST", "path": "/api/unpack", "description": "Unpack .meru v2 container with CRC32 integrity validation"},
+            {"method": "POST", "path": "/api/trace", "description": "Step-by-step block ranking walk with binomial terms"},
+            {"method": "POST", "path": "/api/sweep", "description": "Block size vs compression ratio sweep grid for heatmaps"},
+            {"method": "POST", "path": "/api/analyze", "description": "Shannon entropy H(p), theoretical minimum, and MeruCode gap"},
+            {"method": "POST", "path": "/api/corrupt", "description": "Bit-flip corruption laboratory simulator"},
+            {"method": "POST", "path": "/api/compare", "description": "Benchmark comparison vs raw, zlib, gzip, bz2, lzma, rle"},
+            {"method": "POST", "path": "/api/generate", "description": "Deterministic PRNG bitstream generator"},
+            {"method": "GET", "path": "/api/prastara", "description": "Pingala Prastara binary permutations"},
+            {"method": "GET", "path": "/api/meru", "description": "Meru Prastara (Pascal triangle) rows"},
+            {"method": "GET", "path": "/api/matra", "description": "Matra-vritta meter combinations"},
+            {"method": "GET", "path": "/api/nashta", "description": "Nashta: index -> pattern"},
+            {"method": "GET", "path": "/api/uddishta", "description": "Uddishta: pattern -> index"}
+        ]
+    })
+
+
+@app.get("/api/docs")
+def docs():
+    return """<!DOCTYPE html>
+<html>
+<head>
+    <title>Yukti (MeruCode) API Reference</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #24292f; }
+        h1 { border-bottom: 2px solid #e1e4e8; padding-bottom: 12px; }
+        .endpoint { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px 16px; margin: 12px 0; }
+        .method { font-weight: bold; padding: 2px 8px; border-radius: 4px; font-size: 13px; color: #fff; display: inline-block; }
+        .GET { background: #0969da; }
+        .POST { background: #1a7f37; }
+        code { background: #e1e4e8; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>Yukti (MeruCode) - API Documentation</h1>
+    <p>Lossless combinatorial bitstream codec inspired by Pingala's Chhandas-Shastra.</p>
+    <p>Explore system endpoints below or fetch machine-readable schema at <code><a href="/api/info">/api/info</a></code>.</p>
+    <div class="endpoint"><span class="method GET">GET</span> <code>/api/info</code> &mdash; Version, limits, and header layout</div>
+    <div class="endpoint"><span class="method GET">GET</span> <code>/api/health</code> &mdash; Service health and uptime</div>
+    <div class="endpoint"><span class="method POST">POST</span> <code>/api/encode</code> &mdash; Encode bits/text</div>
+    <div class="endpoint"><span class="method POST">POST</span> <code>/api/decode</code> &mdash; Decode bitstream</div>
+    <div class="endpoint"><span class="method POST">POST</span> <code>/api/pack</code> &mdash; Create .meru v2 container</div>
+    <div class="endpoint"><span class="method POST">POST</span> <code>/api/unpack</code> &mdash; Unpack .meru v2 container</div>
+    <div class="endpoint"><span class="method POST">POST</span> <code>/api/trace</code> &mdash; Trace binomial terms walk</div>
+    <div class="endpoint"><span class="method POST">POST</span> <code>/api/sweep</code> &mdash; Block size sweep grid</div>
+    <div class="endpoint"><span class="method POST">POST</span> <code>/api/analyze</code> &mdash; Shannon entropy vs MeruCode gap</div>
+    <div class="endpoint"><span class="method POST">POST</span> <code>/api/corrupt</code> &mdash; Corruption lab simulation</div>
+    <div class="endpoint"><span class="method POST">POST</span> <code>/api/compare</code> &mdash; Benchmarks vs standard compressors</div>
+</body>
+</html>""", 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.post("/api/trace")
+def trace_route():
+    d = _body(allowed_fields={"text", "bits", "block", "max_blocks"})
+    bits, mode = _input_bits(d)
+    block = _block(d)
+    max_blocks = _parse_int(d.get("max_blocks", 32), "max_blocks", min_val=1, max_val=256) if "max_blocks" in d else 32
+    res = core.trace_stream(bits, block=block, max_blocks=max_blocks)
+    res["mode"] = mode
+    return jsonify(res)
+
+
+@app.post("/api/sweep")
+def sweep_route():
+    d = _body(allowed_fields={"density", "length", "seed", "block_min", "block_max", "step"})
+    density = _parse_float(d.get("density", 0.05), "density", min_val=0.0, max_val=1.0) if "density" in d else 0.05
+    length = _parse_int(d.get("length", 1024), "length", min_val=16, max_val=20000) if "length" in d else 1024
+    seed = _parse_int(d.get("seed", 42), "seed") if "seed" in d else 42
+    b_min = _parse_int(d.get("block_min", 4), "block_min", min_val=1, max_val=core.MAX_BLOCK) if "block_min" in d else 4
+    b_max = _parse_int(d.get("block_max", 64), "block_max", min_val=b_min, max_val=core.MAX_BLOCK) if "block_max" in d else 64
+    step = _parse_int(d.get("step", 2), "step", min_val=1, max_val=16) if "step" in d else 2
+    res = core.sweep_ratios(density=density, length=length, seed=seed, block_min=b_min, block_max=b_max, step=step)
+    return jsonify(res)
+
+
+@app.post("/api/analyze")
+def analyze_route():
+    d = _body(allowed_fields={"text", "bits", "block"})
+    bits, _ = _input_bits(d)
+    block = _block(d)
+    res = core.calculate_entropy(bits, block=block)
+    return jsonify(res)
+
+
+@app.post("/api/corrupt")
+def corrupt_route():
+    d = _body(allowed_fields={"encoded", "position"})
+    encoded = _parse_str(d.get("encoded"), "encoded", max_len=MAX_INPUT_BITS * 2)
+    core._check_bits(encoded, field="encoded")
+    pos = _parse_int(d.get("position"), "position", min_val=0, max_val=len(encoded) - 1)
+    res = core.corrupt_and_decode(encoded, pos)
+    return jsonify(res)
 
 
 @app.get("/")

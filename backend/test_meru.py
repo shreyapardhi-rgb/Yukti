@@ -285,6 +285,89 @@ class TestByteFastPaths(unittest.TestCase):
             self.assertEqual(dec, data, f"Failed roundtrip for block {block}")
 
 
+class TestSection5Endpoints(unittest.TestCase):
+    def setUp(self):
+        self.c = app.test_client()
+
+    def test_info_endpoint(self):
+        r = self.c.get("/api/info")
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json()
+        self.assertEqual(data["version"], "2.0.0")
+        self.assertIn("limits", data)
+        self.assertIn("header_layout", data)
+        self.assertIn("endpoints", data)
+
+    def test_docs_endpoint(self):
+        r = self.c.get("/api/docs")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(b"Yukti", r.data)
+
+    def test_trace_endpoint(self):
+        r = self.c.post("/api/trace", json={"bits": "101001", "block": 6})
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json()
+        self.assertEqual(data["block_size"], 6)
+        self.assertEqual(len(data["blocks"]), 1)
+        blk = data["blocks"][0]
+        self.assertEqual(blk["k"], 3)
+        self.assertIn("binomial_terms", blk)
+        self.assertEqual(len(blk["binomial_terms"]), 6)
+        self.assertIn("running_sum", blk)
+
+    def test_sweep_endpoint(self):
+        r = self.c.post("/api/sweep", json={"density": 0.05, "length": 512, "step": 8})
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json()
+        self.assertEqual(data["density"], 0.05)
+        self.assertGreater(len(data["points"]), 0)
+        first_pt = data["points"][0]
+        self.assertIn("block", first_pt)
+        self.assertIn("ratio", first_pt)
+        self.assertIn("compresses", first_pt)
+
+    def test_analyze_endpoint(self):
+        # All zeros has 0 entropy
+        zeros_res = self.c.post("/api/analyze", json={"bits": "0" * 100, "block": 8}).get_json()
+        self.assertEqual(zeros_res["shannon_entropy_per_bit"], 0.0)
+        self.assertEqual(zeros_res["theoretical_min_bits"], 0)
+
+        # Balanced bits has high entropy
+        rnd_bits = core.make_preset("balanced", 500, 42)
+        bal_res = self.c.post("/api/analyze", json={"bits": rnd_bits, "block": 8}).get_json()
+        self.assertGreater(bal_res["shannon_entropy_per_bit"], 0.9)
+        self.assertIn("explanation", bal_res)
+
+    def test_corrupt_endpoint(self):
+        sample = core.make_preset("sparse", 64, 1)
+        enc = core.encode(sample, 8)
+        # Flip bit inside the stream
+        r = self.c.post("/api/corrupt", json={"encoded": enc, "position": 10})
+        self.assertEqual(r.status_code, 200)
+        data = r.get_json()
+        self.assertEqual(data["flipped_position"], 10)
+        self.assertIn("flipped_bit", data)
+        self.assertIn("success", data)
+
+    def test_new_endpoints_validation_errors(self):
+        # /api/corrupt out of bounds
+        r = self.c.post("/api/corrupt", json={"encoded": "101", "position": 99})
+        self.assertEqual(r.status_code, 400)
+
+        # /api/sweep invalid density
+        r = self.c.post("/api/sweep", json={"density": 1.5})
+        self.assertEqual(r.status_code, 400)
+
+        # /api/sweep negative length
+        r = self.c.post("/api/sweep", json={"length": -10})
+        self.assertEqual(r.status_code, 400)
+
+        # /api/trace invalid block
+        r = self.c.post("/api/trace", json={"bits": "101", "block": 100})
+        self.assertEqual(r.status_code, 400)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 

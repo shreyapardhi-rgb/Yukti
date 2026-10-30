@@ -3,6 +3,7 @@
 Team implementation inspired by Pingala's patterns. NOT a historical compression system.
 L (laghu) = 0, G (guru) = 1.
 """
+import math
 from math import comb
 import struct
 import zlib
@@ -399,3 +400,218 @@ def unpack_container(data):
         stream = "".join(format(b, "08b") for b in data)
         bits = decode(stream)
         return bits, {"version": 1, "crc_verified": False}
+
+
+# ---------- analysis, trace, corruption, and sweep helpers ----------
+def trace_block(block):
+    """Detailed ranking walk for a single block."""
+    _check_bits(block, field="block")
+    n = len(block)
+    k = block.count("1")
+    left = k
+    running_sum = 0
+    terms = []
+    for i, b in enumerate(block):
+        rem = n - i - 1
+        if b == "1":
+            val = fast_comb(rem, left)
+            running_sum += val
+            terms.append({
+                "pos": i,
+                "bit": b,
+                "n": rem,
+                "left": left,
+                "value": val,
+                "running_sum": running_sum
+            })
+            left -= 1
+        else:
+            terms.append({
+                "pos": i,
+                "bit": b,
+                "n": rem,
+                "left": left,
+                "value": 0,
+                "running_sum": running_sum
+            })
+    return {
+        "block": block,
+        "k": k,
+        "rank": running_sum,
+        "k_bits": k_width(n),
+        "rank_bits": rank_width(n, k),
+        "binomial_terms": terms,
+        "running_sum": running_sum
+    }
+
+
+def trace_stream(bits, block=8, max_blocks=32):
+    """Trace multiple blocks up to max_blocks for UI visualization."""
+    _check_bits(bits)
+    if not isinstance(block, int) or isinstance(block, bool) or not 1 <= block <= MAX_BLOCK:
+        raise MeruError(f"block size must be between 1 and {MAX_BLOCK}", code="BAD_BLOCK_SIZE", field="block")
+    padded = bits + "0" * ((-len(bits)) % block)
+    blocks_out = []
+    for i in range(0, min(len(padded), max_blocks * block), block):
+        blk = padded[i:i + block]
+        blocks_out.append(trace_block(blk))
+    return {
+        "total_bits": len(bits),
+        "block_size": block,
+        "total_blocks": -(-len(padded) // block) if block else 0,
+        "traced_blocks": len(blocks_out),
+        "blocks": blocks_out
+    }
+
+
+def calculate_entropy(bits, block=8):
+    """Calculate empirical Shannon entropy H(p), theoretical minimum size, and MeruCode gap."""
+    _check_bits(bits)
+    n = len(bits)
+    if n == 0:
+        return {
+            "n_bits": 0,
+            "ones": 0,
+            "zeros": 0,
+            "p1": 0.0,
+            "p0": 0.0,
+            "shannon_entropy_per_bit": 0.0,
+            "theoretical_min_bits": 0,
+            "meru_bits": HEADER_BITS,
+            "meru_block": block,
+            "meru_gap_bits": HEADER_BITS,
+            "meru_gap_pct": 0.0,
+            "zlib_bits": 0,
+            "zlib_gap_bits": 0,
+            "explanation": "Empty bitstream."
+        }
+
+    k = bits.count("1")
+    p1 = k / n
+    p0 = 1.0 - p1
+
+    if p1 == 0.0 or p1 == 1.0:
+        h = 0.0
+    else:
+        h = - (p0 * math.log2(p0) + p1 * math.log2(p1))
+
+    theoretical_min = n * h
+    ceil_theo_min = math.ceil(theoretical_min)
+
+    encoded_bits = encode(bits, block)
+    meru_bits = len(encoded_bits)
+    meru_gap = meru_bits - ceil_theo_min
+    meru_gap_pct = round(((meru_bits - theoretical_min) / theoretical_min * 100), 2) if theoretical_min > 0 else 0.0
+
+    raw_bytes = bits_to_bytes(bits)
+    zlib_bits = len(zlib.compress(raw_bytes, 9)) * 8
+    zlib_gap = zlib_bits - ceil_theo_min
+
+    explanation = (
+        f"Shannon entropy H(p) = {h:.4f} bits/symbol. MeruCode encodes each block of size {block} using "
+        f"k_bits + log2(C(n,k)). As block size grows, log2(C(n, pn)) / n -> H(p). "
+        f"For low entropy (sparse/dense), MeruCode compresses toward the Shannon limit. "
+        f"For Bernoulli(0.5) random noise, H(p) = 1.0 and any lossless code with headers expands."
+    )
+
+    return {
+        "n_bits": n,
+        "ones": k,
+        "zeros": n - k,
+        "p1": round(p1, 5),
+        "p0": round(p0, 5),
+        "shannon_entropy_per_bit": round(h, 5),
+        "theoretical_min_bits": ceil_theo_min,
+        "meru_bits": meru_bits,
+        "meru_block": block,
+        "meru_gap_bits": meru_gap,
+        "meru_gap_pct": meru_gap_pct,
+        "zlib_bits": zlib_bits,
+        "zlib_gap_bits": zlib_gap,
+        "explanation": explanation
+    }
+
+
+def corrupt_and_decode(encoded, position):
+    """Given an encoded bitstream and a bit position, flip that bit and return decode result or structured error."""
+    _check_bits(encoded, field="encoded")
+    if not (0 <= position < len(encoded)):
+        raise MeruError(f"position {position} is out of bounds for stream of length {len(encoded)}",
+                        code="POSITION_OUT_OF_BOUNDS", field="position")
+
+    flipped_char = "0" if encoded[position] == "1" else "1"
+    corrupted_stream = encoded[:position] + flipped_char + encoded[position + 1:]
+
+    try:
+        orig_decoded = decode(encoded)
+    except MeruError:
+        orig_decoded = None
+
+    try:
+        corrupted_decoded = decode(corrupted_stream)
+        diff_count = 0
+        min_len = min(len(orig_decoded) if orig_decoded else 0, len(corrupted_decoded))
+        for j in range(min_len):
+            if orig_decoded and orig_decoded[j] != corrupted_decoded[j]:
+                diff_count += 1
+        diff_count += abs((len(orig_decoded) if orig_decoded else 0) - len(corrupted_decoded))
+
+        return {
+            "flipped_position": position,
+            "original_bit": encoded[position],
+            "flipped_bit": flipped_char,
+            "success": True,
+            "error": None,
+            "diff_summary": {
+                "orig_length": len(orig_decoded) if orig_decoded else 0,
+                "new_length": len(corrupted_decoded),
+                "bit_errors": diff_count,
+                "bit_error_rate": round(diff_count / max(len(orig_decoded) if orig_decoded else 1, 1), 4)
+            },
+            "decoded_preview": corrupted_decoded[:200]
+        }
+    except MeruError as exc:
+        return {
+            "flipped_position": position,
+            "original_bit": encoded[position],
+            "flipped_bit": flipped_char,
+            "success": False,
+            "error": {
+                "code": exc.code,
+                "message": exc.message,
+                "field": exc.field,
+                "position": exc.position
+            },
+            "diff_summary": None,
+            "decoded_preview": None
+        }
+
+
+def sweep_ratios(density=0.05, length=1024, seed=42, block_min=4, block_max=64, step=2):
+    """Sweep block sizes for a given density and return compression ratios."""
+    if not (0.0 <= density <= 1.0):
+        raise MeruError("density must be between 0.0 and 1.0", code="BAD_DENSITY", field="density")
+    if not (16 <= length <= 20000):
+        raise MeruError("length must be between 16 and 20000", code="BAD_LENGTH", field="length")
+
+    rnd = mulberry32(seed)
+    bits = "".join("1" if rnd() < density else "0" for _ in range(length))
+
+    results = []
+    for b in range(block_min, block_max + 1, step):
+        enc = encode(bits, block=b)
+        ratio = round(len(enc) / len(bits), 4)
+        results.append({
+            "block": b,
+            "encoded_bits": len(enc),
+            "ratio": ratio,
+            "compresses": len(enc) < len(bits)
+        })
+
+    return {
+        "density": density,
+        "length": length,
+        "seed": seed,
+        "points": results
+    }
+
