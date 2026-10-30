@@ -2082,6 +2082,9 @@ function verdict(raw, meru) { if (!raw) return { good: false, text: "empty input
   return meru < raw ? { good: true, text: `COMPRESSES: ${raw} bits -> ${meru} bits (${pct}% of original)` }
                     : { good: false, text: `ONLY ENCODES: ${raw} bits -> ${meru} bits (${pct}% of original, larger)` }; }
 // ==/CORE==
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { C, bw, kWidth, rankWidth, pad, prastara, meruRows, matraVritta, textToBits, bitsToText, rankBlock, unrankBlock, encode, decode, mulberry32, makePreset, verdict };
+}
 
 // ---- Helpers & DOM
 const $ = (id) => document.getElementById(id);

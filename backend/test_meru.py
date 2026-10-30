@@ -1,6 +1,12 @@
+import json
+import os
 import random
+import shutil
+import subprocess
 import unittest
 import zlib
+
+from hypothesis import given, settings, strategies as st
 
 import core
 from core import encode, decode, rank_block, unrank_block, MeruError
@@ -367,7 +373,353 @@ class TestSection5Endpoints(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
 
 
+class TestGoldenVectors(unittest.TestCase):
+    def setUp(self):
+        golden_path = os.path.join(os.path.dirname(__file__), "..", "tests", "golden.json")
+        with open(golden_path, "r", encoding="utf-8") as f:
+            self.golden = json.load(f)
+
+    def test_all_golden_vectors_python(self):
+        for v in self.golden:
+            raw_bits = v["raw_bits"]
+            block = v["block"]
+            expected_enc = v["encoded"]
+
+            enc = encode(raw_bits, block)
+            self.assertEqual(enc, expected_enc, f"Encoding mismatch on {v['name']}")
+
+            dec = decode(enc)
+            self.assertEqual(dec, raw_bits, f"Decoding mismatch on {v['name']}")
+
+    def test_devanagari_golden_roundtrip(self):
+        dev = next(v for v in self.golden if v["name"] == "devanagari_text")
+        dec_bits = decode(dev["encoded"])
+        text = core.bits_to_text(dec_bits)
+        self.assertEqual(text, dev["text"])
+
+    def test_block_64_golden_roundtrip(self):
+        b64 = next(v for v in self.golden if v["name"] == "block_64_alternating")
+        self.assertEqual(decode(b64["encoded"]), b64["raw_bits"])
+
+
+class TestFrontendParity(unittest.TestCase):
+    def test_1000_random_vectors_match_js_codec(self):
+        node_path = shutil.which("node")
+        if not node_path:
+            self.skipTest("node.js not available on system PATH; skipping cross-language parity test")
+
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        rnd = core.mulberry32(2026)
+
+        cases = []
+        for i in range(1000):
+            # lengths from 0 to 200 bits
+            length = int(rnd() * 200)
+            block = int(rnd() * 64) + 1
+            density = rnd()
+            bits = "".join("1" if rnd() < density else "0" for _ in range(length))
+            py_enc = encode(bits, block)
+            cases.append({
+                "bits": bits,
+                "block": block,
+                "py_encoded": py_enc
+            })
+
+        cases_path = os.path.join(repo_root, "tests", "random_cases.json")
+        with open(cases_path, "w", encoding="utf-8") as f:
+            json.dump(cases, f)
+
+        try:
+            parity_script = os.path.join(repo_root, "tests", "parity_test.js")
+            res = subprocess.run([node_path, parity_script], cwd=repo_root, capture_output=True, text=True)
+            self.assertEqual(res.returncode, 0, f"Node parity test failed with stderr:\n{res.stderr}\nstdout:\n{res.stdout}")
+            self.assertIn("PASS: Verified 1000/1000 random vectors", res.stdout)
+        finally:
+            if os.path.exists(cases_path):
+                os.remove(cases_path)
+
+
+class TestHypothesisProperties(unittest.TestCase):
+    @settings(max_examples=50, deadline=None)
+    @given(st.text(alphabet="01", min_size=0, max_size=200), st.integers(min_value=1, max_value=64))
+    def test_hypothesis_roundtrip(self, bits, block):
+        enc = encode(bits, block)
+        dec = decode(enc)
+        self.assertEqual(dec, bits)
+
+    @settings(max_examples=50, deadline=None)
+    @given(st.integers(min_value=1, max_value=64), st.data())
+    def test_hypothesis_rank_unrank_inverse(self, n, data):
+        k = data.draw(st.integers(min_value=0, max_value=n))
+        limit = core.fast_comb(n, k)
+        r = data.draw(st.integers(min_value=0, max_value=limit - 1)) if limit > 0 else 0
+        pattern = unrank_block(n, k, r)
+        self.assertEqual(len(pattern), n)
+        self.assertEqual(pattern.count("1"), k)
+        calc_k, calc_r = rank_block(pattern)
+        self.assertEqual((calc_k, calc_r), (k, r))
+
+    @settings(max_examples=40, deadline=None)
+    @given(st.text(alphabet="01", min_size=1, max_size=150), st.integers(min_value=1, max_value=32))
+    def test_hypothesis_size_formula_exactness(self, bits, block):
+        enc, rows = encode(bits, block, detail=True)
+        expected_size = core.HEADER_BITS + sum(r["bits_used"] for r in rows)
+        self.assertEqual(len(enc), expected_size)
+
+    @settings(max_examples=60, deadline=None)
+    @given(st.text(alphabet="01", min_size=0, max_size=200))
+    def test_hypothesis_decode_safety(self, stream):
+        try:
+            res = decode(stream)
+            self.assertIsInstance(res, str)
+        except MeruError:
+            pass
+
+
+class TestExhaustiveBlocks(unittest.TestCase):
+    def test_exhaustive_all_blocks_up_to_12_bits(self):
+        # Exhaustively check all 8,190 block patterns from block 1 to 12
+        for n in range(1, 13):
+            for i in range(1 << n):
+                pattern = format(i, f"0{n}b")
+                k, r = rank_block(pattern)
+                reconstructed = unrank_block(n, k, r)
+                self.assertEqual(reconstructed, pattern)
+
+    def test_block_sizes_13_to_16_boundary_and_samples(self):
+        rnd = random.Random(999)
+        for n in range(13, 17):
+            # Boundary cases: all 0s, all 1s, single 1 at each position
+            all_zeros = "0" * n
+            self.assertEqual(unrank_block(n, *rank_block(all_zeros)), all_zeros)
+
+            all_ones = "1" * n
+            self.assertEqual(unrank_block(n, *rank_block(all_ones)), all_ones)
+
+            for pos in range(n):
+                single_one = "0" * pos + "1" + "0" * (n - pos - 1)
+                self.assertEqual(unrank_block(n, *rank_block(single_one)), single_one)
+
+            # Random sample of 100 patterns
+            for _ in range(100):
+                pat = "".join(rnd.choice("01") for _ in range(n))
+                self.assertEqual(unrank_block(n, *rank_block(pat)), pat)
+
+
+class TestMutationSanity(unittest.TestCase):
+    def test_off_by_one_mutation_breaks_codec(self):
+        orig_rank_block = core.rank_block
+        try:
+            # Introduce intentional off-by-one mutation in rank_block
+            def broken_rank_block(block):
+                k, r = orig_rank_block(block)
+                return k, r + 1
+
+            core.rank_block = broken_rank_block
+
+            # Verify that encode-decode roundtrip FAILS with the mutant
+            test_bits = "10011010"
+            failed = False
+            try:
+                mutated_stream = encode(test_bits, block=8)
+                decoded = decode(mutated_stream)
+                if decoded != test_bits:
+                    failed = True
+            except MeruError:
+                failed = True
+
+            self.assertTrue(failed, "Mutation sanity test failed: off-by-one bug was not caught!")
+        finally:
+            core.rank_block = orig_rank_block
+
+
+class TestApiErrorsExhaustive(unittest.TestCase):
+    def setUp(self):
+        self.c = app.test_client()
+
+    def test_404_not_found(self):
+        r = self.c.get("/api/nonexistent_route")
+        self.assertEqual(r.status_code, 404)
+        data = r.get_json()
+        self.assertEqual(data["error"]["code"], "NOT_FOUND")
+
+    def test_405_method_not_allowed(self):
+        r = self.c.get("/api/encode")
+        self.assertEqual(r.status_code, 405)
+        data = r.get_json()
+        self.assertEqual(data["error"]["code"], "METHOD_NOT_ALLOWED")
+
+        r2 = self.c.post("/api/info", json={})
+        self.assertEqual(r2.status_code, 405)
+        self.assertEqual(r2.get_json()["error"]["code"], "METHOD_NOT_ALLOWED")
+
+    def test_400_bad_json_or_types(self):
+        # Non-JSON data
+        r = self.c.post("/api/encode", data="not json", content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.get_json()["error"]["code"], "INVALID_JSON")
+
+        # Missing input
+        r = self.c.post("/api/encode", json={})
+        self.assertEqual(r.status_code, 400)
+
+        # Unexpected fields
+        r = self.c.post("/api/encode", json={"text": "hello", "unknown_field": 123})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.get_json()["error"]["code"], "UNEXPECTED_FIELD")
+
+        # Boolean passed as integer
+        r = self.c.post("/api/generate", json={"preset": "sparse", "length": True})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.get_json()["error"]["code"], "INVALID_TYPE")
+
+        # NaN/Infinity passed to float
+        r = self.c.post("/api/sweep", json={"density": "NaN"})
+        self.assertEqual(r.status_code, 400)
+
+        # Invalid pattern for uddishta
+        r = self.c.get("/api/uddishta?pattern=012")
+        self.assertEqual(r.status_code, 400)
+
+        # Missing param for nashta
+        r = self.c.get("/api/nashta?n=4")
+        self.assertEqual(r.status_code, 400)
+
+    def test_all_api_endpoints_respond_200(self):
+        # Check every GET endpoint
+        self.assertEqual(self.c.get("/api/health").status_code, 200)
+        self.assertEqual(self.c.get("/api/info").status_code, 200)
+        self.assertEqual(self.c.get("/api/docs").status_code, 200)
+        self.assertEqual(self.c.get("/api/prastara?n=4").status_code, 200)
+        self.assertEqual(self.c.get("/api/meru?rows=5").status_code, 200)
+        self.assertEqual(self.c.get("/api/matra?m=4").status_code, 200)
+        self.assertEqual(self.c.get("/api/nashta?n=4&index=5").status_code, 200)
+        self.assertEqual(self.c.get("/api/uddishta?pattern=0101").status_code, 200)
+        self.assertEqual(self.c.get("/api/presets").status_code, 200)
+
+
+class TestGranularUnits(unittest.TestCase):
+    def test_fast_comb_properties(self):
+        self.assertEqual(core.fast_comb(0, 0), 1)
+        self.assertEqual(core.fast_comb(5, 0), 1)
+        self.assertEqual(core.fast_comb(5, 5), 1)
+        self.assertEqual(core.fast_comb(5, 2), 10)
+        self.assertEqual(core.fast_comb(5, 6), 0)
+        self.assertEqual(core.fast_comb(5, -1), 0)
+        self.assertEqual(core.fast_comb(64, 32), 1832624140942590534)
+
+    def test_k_width_powers(self):
+        self.assertEqual(core.k_width(1), 1)
+        self.assertEqual(core.k_width(2), 2)
+        self.assertEqual(core.k_width(3), 2)
+        self.assertEqual(core.k_width(4), 3)
+        self.assertEqual(core.k_width(8), 4)
+        self.assertEqual(core.k_width(16), 5)
+        self.assertEqual(core.k_width(64), 7)
+
+    def test_rank_width_values(self):
+        self.assertEqual(core.rank_width(4, 0), 0)
+        self.assertEqual(core.rank_width(4, 4), 0)
+        self.assertEqual(core.rank_width(4, 1), 2)
+        self.assertEqual(core.rank_width(4, 2), 3)
+
+    def test_text_to_bits_utf8(self):
+        s = "Hello World"
+        b = core.text_to_bits(s)
+        self.assertEqual(len(b), len(s) * 8)
+        self.assertEqual(core.bits_to_text(b), s)
+
+    def test_text_to_bits_invalid_type(self):
+        with self.assertRaises(core.MeruError):
+            core.text_to_bits(123)
+
+    def test_bits_to_text_non_multiple_of_8(self):
+        with self.assertRaises(core.MeruError):
+            core.bits_to_text("10101")
+
+    def test_bits_to_bytes_padding_and_roundtrip(self):
+        bits = "101"
+        b = core.bits_to_bytes(bits)
+        self.assertEqual(len(b), 1)
+        self.assertEqual(b[0], 0b10100000)
+
+    def test_encode_block_size_1(self):
+        bits = "1011001"
+        enc = encode(bits, block=1)
+        self.assertEqual(decode(enc), bits)
+
+    def test_encode_block_size_64(self):
+        bits = "01" * 32
+        enc = encode(bits, block=64)
+        self.assertEqual(decode(enc), bits)
+
+    def test_encode_empty_bitstring(self):
+        enc = encode("", block=8)
+        self.assertEqual(decode(enc), "")
+
+    def test_encode_all_zeros_various_lengths(self):
+        for length in [1, 7, 8, 9, 15, 16, 17, 63, 64, 65]:
+            bits = "0" * length
+            self.assertEqual(decode(encode(bits, block=8)), bits)
+
+    def test_encode_all_ones_various_lengths(self):
+        for length in [1, 7, 8, 9, 15, 16, 17, 63, 64, 65]:
+            bits = "1" * length
+            self.assertEqual(decode(encode(bits, block=8)), bits)
+
+    def test_compare_various_presets(self):
+        for preset in ["sparse", "all_zeros", "mostly_ones"]:
+            bits = core.make_preset(preset, 1024, 1)
+            res = compare(bits, block=8)
+            self.assertTrue(res["compresses"], f"Preset {preset} should compress")
+
+    def test_compare_balanced_expands(self):
+        bits = core.make_preset("balanced", 1024, 1)
+        res = compare(bits, block=8)
+        self.assertFalse(res["compresses"], "Balanced preset should expand")
+
+    def test_trace_binomial_terms_sum_equals_rank(self):
+        block = "10110"
+        t = core.trace_block(block)
+        sum_vals = sum(item["value"] for item in t["binomial_terms"])
+        self.assertEqual(sum_vals, t["rank"])
+
+    def test_sweep_bounds(self):
+        with self.assertRaises(core.MeruError):
+            core.sweep_ratios(density=-0.1)
+        with self.assertRaises(core.MeruError):
+            core.sweep_ratios(length=5)
+
+    def test_calculate_entropy_bounds(self):
+        res_zero = core.calculate_entropy("00000000", block=8)
+        self.assertEqual(res_zero["shannon_entropy_per_bit"], 0.0)
+        res_one = core.calculate_entropy("11111111", block=8)
+        self.assertEqual(res_one["shannon_entropy_per_bit"], 0.0)
+
+    def test_cors_headers(self):
+        c = app.test_client()
+        r = c.get("/api/health", headers={"Origin": "http://localhost:5000"})
+        self.assertEqual(r.headers.get("Access-Control-Allow-Origin"), "http://localhost:5000")
+
+    def test_prastara_invalid_n_out_of_range(self):
+        c = app.test_client()
+        r = c.get("/api/prastara?n=99")
+        self.assertEqual(r.status_code, 400)
+
+    def test_matra_invalid_m_out_of_range(self):
+        c = app.test_client()
+        r = c.get("/api/matra?m=99")
+        self.assertEqual(r.status_code, 400)
+
+    def test_meru_invalid_rows_out_of_range(self):
+        c = app.test_client()
+        r = c.get("/api/meru?rows=999")
+        self.assertEqual(r.status_code, 400)
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
 
 
