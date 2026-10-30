@@ -436,7 +436,10 @@ class TestFrontendParity(unittest.TestCase):
             self.assertIn("PASS: Verified 1000/1000 random vectors", res.stdout)
         finally:
             if os.path.exists(cases_path):
-                os.remove(cases_path)
+                try:
+                    os.remove(cases_path)
+                except OSError:
+                    pass
 
 
 class TestHypothesisProperties(unittest.TestCase):
