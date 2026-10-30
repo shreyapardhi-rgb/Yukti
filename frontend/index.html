@@ -1,485 +1,569 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Yukti (युक्ति) — Pingala Combinadic Bitstream Codec</title>
-  <meta name="description" content="Lossless bitstream codec inspired by Acharya Pingala's Chhandas-Shastra. Serializes n-bit blocks into combinadic coordinates (k, rank). Safe, fast, and verified bit-for-bit.">
-  
-  <!-- Open Graph -->
-  <meta property="og:title" content="Yukti (युक्ति) — Pingala Combinadic Bitstream Codec">
-  <meta property="og:description" content="Turning classical Sanskrit combinatorics into a verified, lossless digital bitstream codec with .meru v2 CRC32 integrity.">
-  <meta property="og:type" content="website">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
-  <style>
-    .hero-section {
-      padding: 48px 0 24px;
-      text-align: center;
-      max-width: 860px;
-      margin: 0 auto;
-    }
-
-    .hero-actions {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 18px;
-      margin-top: 24px;
-      flex-wrap: wrap;
-    }
-
-    .link-secondary {
-      color: var(--text-secondary);
-      font-weight: 600;
-      font-size: 15px;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: color 0.15s ease;
-    }
-
-    .link-secondary:hover {
-      color: var(--accent);
-    }
-
-    /* Honest chart mini display */
-    .benchmark-bar-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      font-size: 13.5px;
-    }
-
-    .benchmark-bar-label {
-      width: 140px;
-      flex-shrink: 0;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .benchmark-bar-track {
-      flex: 1;
-      height: 18px;
-      background: var(--bg-surface-elevated);
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      border: 1px solid var(--border-subtle);
-      position: relative;
-    }
-
-    .benchmark-bar-fill {
-      height: 100%;
-      border-radius: var(--radius-sm);
-      transition: width 0.4s ease;
-    }
-
-    .benchmark-bar-val {
-      width: 70px;
-      text-align: right;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12.5px;
-      font-weight: 700;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yukti: Pingala’s patterns as a digital encoding</title>
+<style>
+:root{color-scheme:light;--bg:#faf6ef;--bg2:#f1e7d6;--card:#fffdf9;--ink:#2b2118;--mute:#7a6a5a;--line:#e6dccd;--acc:#b3541e;--gold:#8a5a00;--blue:#6fa8dc;--org:#e08a3c;--ok:#2e7d32;--bad:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden}
+.wrap{max-width:1080px;margin:auto;padding:0 22px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:18px 0;flex-wrap:wrap;gap:10px}
+.logo{font:700 22px Georgia,serif;letter-spacing:.3px;text-decoration:none;color:inherit}
+.logo i{font-style:normal;color:var(--acc)}
+nav a{color:var(--mute);text-decoration:none;margin-left:14px;font-size:14px;transition:color .15s}
+nav a:hover{color:var(--acc)}
+nav a.module-link{color:var(--ink);font-weight:600}
+nav a.module-link:hover{color:var(--acc)}
+.hero{background:radial-gradient(900px 500px at 78% 30%,#fff 0,transparent 70%),linear-gradient(180deg,var(--bg),var(--bg2));border-bottom:1px solid var(--line)}
+.hero .wrap{display:grid;grid-template-columns:1.05fr 1fr;gap:10px;align-items:center;min-height:560px;padding-bottom:30px}
+.tag{display:inline-block;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold);border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 12px}
+h1{font:700 clamp(36px,5.4vw,60px)/1.08 Georgia,serif;margin:14px 0 14px}
+h1 em{font-style:normal;color:var(--acc)}
+.lead{color:var(--mute);font-size:18px;max-width:520px;margin:0 0 24px}
+.btn{display:inline-block;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin:0 10px 10px 0;transition:transform .15s,box-shadow .15s}
+.btn.p{background:var(--acc);color:#fff;box-shadow:0 6px 18px rgba(179,84,30,.28)}
+.btn.s{border:1px solid var(--acc);color:var(--acc);background:transparent}
+.btn:hover{transform:translateY(-2px)}
+#stage{position:relative;height:520px;min-width:0;cursor:grab}
+#stage canvas{display:block;width:100%;height:100%}
+.hint{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:12px;color:var(--mute)}
+.badge{margin-top:18px;font-size:13px;color:var(--mute);border-left:3px solid var(--org);padding-left:10px;max-width:520px}
+section.blk{padding:70px 0 20px}
+h2{font:700 clamp(26px,3.6vw,36px) Georgia,serif;margin:0 0 6px}
+.sub{color:var(--mute);margin:0 0 28px;max-width:640px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;transition:transform .2s,box-shadow .2s;transform-style:preserve-3d}
+.card:hover{transform:translateY(-6px) rotateX(3deg);box-shadow:0 14px 30px rgba(80,50,20,.12)}
+.num{width:34px;height:34px;border-radius:50%;background:var(--acc);color:#fff;display:grid;place-items:center;font-weight:700;margin-bottom:10px}
+.card h3{margin:0 0 6px;font:600 18px Georgia,serif}
+.card p{margin:0;color:var(--mute);font-size:15px}
+code{background:#f4ece0;border-radius:5px;padding:1px 6px;font-size:13px}
+.demo{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+.demo input{width:100%;max-width:340px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--bg);color:var(--ink)}
+table{border-collapse:collapse;width:100%;margin-top:14px;font:13px ui-monospace,Menlo,Consolas,monospace}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--mute);font:600 12px system-ui;text-transform:uppercase;letter-spacing:.8px}
+.scroll{overflow-x:auto}
+.verdict{margin-top:14px;padding:12px 14px;border-radius:10px;font-weight:600;border:1px solid}
+.verdict.good{color:var(--ok);background:#eef8ee}
+.verdict.bad{color:var(--bad);background:#fdf0ee}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.stat b{display:block;font:700 28px Georgia,serif}
+.stat small{display:block;color:var(--mute);margin-top:2px}
+.stat .v{font-size:12px;font-weight:700;letter-spacing:.8px;margin-top:8px}
+.stat .v.g{color:var(--ok)}.stat .v.r{color:var(--bad)}
+.bars{height:8px;border-radius:5px;background:#eee3d2;margin-top:10px;overflow:hidden}
+.bars span{display:block;height:100%;background:var(--acc);border-radius:5px}
+.honest{margin:36px 0 0;background:var(--card);border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:12px;padding:16px 20px;color:var(--mute)}
+.honest b{color:var(--ink)}
+footer{margin-top:70px;border-top:1px solid var(--line);padding:26px 0 40px;color:var(--mute);font-size:14px}
+.hero{position:relative;overflow:hidden}
+.hero .wrap{position:relative;z-index:2}
+.hero::before{content:"";position:absolute;inset:0;background-image:radial-gradient(#e2cfae 1px,transparent 1px);background-size:24px 24px;opacity:.55;-webkit-mask-image:linear-gradient(180deg,#000,transparent 85%);mask-image:linear-gradient(180deg,#000,transparent 85%)}
+.blob{position:absolute;border-radius:50%;filter:blur(60px);opacity:.55;animation:float 12s ease-in-out infinite;pointer-events:none}
+.b1{width:380px;height:380px;background:#f6c48b;top:-80px;right:6%}
+.b2{width:320px;height:320px;background:#bcd9f2;bottom:-100px;left:-60px;animation-delay:-4s}
+.b3{width:240px;height:240px;background:#f4bfd0;top:40%;left:42%;opacity:.35;animation-delay:-8s}
+.mandala{position:absolute;right:-150px;top:-30px;width:700px;height:700px;opacity:.6;animation:spin 120s linear infinite;pointer-events:none}
+h1 em{background:linear-gradient(90deg,var(--acc),var(--org),#d9467a,var(--acc));background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+h2::after{content:"";display:block;width:56px;height:4px;border-radius:4px;margin-top:8px;background:linear-gradient(90deg,var(--acc),var(--org))}
+.pills{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.pills span{font-size:12px;border:1px solid var(--line);background:rgba(255,253,249,.85);border-radius:999px;padding:4px 12px;color:var(--gold);animation:bob 4s ease-in-out infinite}
+.pills span:nth-child(2){animation-delay:-1.3s}.pills span:nth-child(3){animation-delay:-2.6s}
+.marq{overflow:hidden;white-space:nowrap;background:#fffaf0;border-bottom:1px solid var(--line)}
+.marq div{display:inline-block;padding:13px 0;animation:marq 36s linear infinite}
+.marq:hover div{animation-play-state:paused}
+.marq span{margin:0 22px;font:600 15px Georgia,serif;color:var(--gold)}
+.marq span::after{content:"✦";margin-left:44px;color:var(--org)}
+.card,.fs,.stat{position:relative;overflow:hidden}
+.card::before{content:"";display:block;height:5px;margin:-20px -20px 16px;background:linear-gradient(90deg,var(--blue),var(--org))}
+.card::after,.fs::after,.stat::after{content:"";position:absolute;inset:0;background:radial-gradient(180px circle at var(--mx,50%) var(--my,0%),rgba(224,138,60,.2),transparent 65%);opacity:0;transition:opacity .3s;pointer-events:none}
+.card:hover::after,.fs:hover::after,.stat:hover::after{opacity:1}
+.flow{display:flex;align-items:center}
+.fs{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;transition:transform .2s,box-shadow .2s}
+.fs:hover{transform:translateY(-6px);box-shadow:0 14px 28px rgba(80,50,20,.12)}
+.fs i{font-style:normal;display:grid;place-items:center;width:30px;height:30px;margin:0 auto 6px;border-radius:50%;background:linear-gradient(135deg,var(--org),var(--acc));color:#fff;font-weight:700}
+.fs b{display:block;font:600 15px Georgia,serif}
+.fs code{display:block;margin:8px 0 4px;padding:6px 4px;font-size:12px}
+.fs small{color:var(--mute);font-size:12px}
+.fa{flex:0 0 34px;height:3px;position:relative;overflow:hidden;background:#ead9bf;border-radius:3px}
+.fa::after{content:"";position:absolute;top:0;left:-35%;width:35%;height:100%;background:linear-gradient(90deg,transparent,var(--acc));animation:run 1.5s linear infinite}
+.stat .bars span{transform-origin:left;transform:scaleX(0);transition:transform 1.3s .3s}
+.stat.in .bars span{transform:scaleX(1)}
+.cta{margin-top:70px;background:linear-gradient(120deg,#e08a3c,#b3541e,#d9467a);background-size:200% 200%;animation:shine2 10s ease infinite;color:#fff;padding:56px 0;text-align:center}
+.cta h2{color:#fff}.cta h2::after{margin:8px auto 0;background:#fff}
+.cta p{max-width:520px;margin:8px auto 22px;opacity:.94}
+.cta .btn{background:#fff;color:var(--acc);box-shadow:0 8px 20px rgba(0,0,0,.15)}
+footer{margin-top:0}
+@keyframes float{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-26px) scale(1.1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shine{to{background-position:300% 50%}}
+@keyframes shine2{0%,100%{background-position:0 50%}50%{background-position:100% 50%}}
+@keyframes marq{to{transform:translateX(-50%)}}
+@keyframes run{to{left:110%}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@media(max-width:860px){.flow{flex-direction:column;align-items:stretch}.fa{flex:0 0 26px;width:3px;height:26px;align-self:center}.fa::after{width:100%;height:35%;left:0;top:-35%;background:linear-gradient(180deg,transparent,var(--acc));animation:runv 1.5s linear infinite}.mandala{width:480px;height:480px;right:-160px}}
+@keyframes runv{to{top:110%}}
+@media (prefers-reduced-motion:reduce){.blob,.mandala,.marq div,.pills span,h1 em,.cta,.fa::after{animation:none}}
+.login{border:0;background:var(--acc);color:#fff;padding:8px 18px;border-radius:999px;font:600 14px system-ui,sans-serif;cursor:pointer;margin-left:20px;box-shadow:0 4px 12px rgba(179,84,30,.3);transition:transform .15s}
+.login:hover{transform:translateY(-2px)}
+button.btn{border:0}
+.facts,.stack,.feat{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.facts>div,.stack>div,.feat>div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;transition:transform .2s,box-shadow .2s}
+.facts>div:hover,.stack>div:hover,.feat>div:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(80,50,20,.1)}
+.facts b,.stack b{font:600 17px Georgia,serif;display:block;margin-bottom:6px;color:var(--acc)}
+.facts p,.stack p{margin:0;color:var(--mute);font-size:14.5px}
+.feat b{display:block;font:600 16px Georgia,serif;margin-bottom:2px}
+.feat span{color:var(--mute);font-size:14px}
+.feat>div::before{content:"";display:block;width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--org));margin-bottom:10px}
+.feat a{display:inline-block;margin-top:8px;font-size:13px;color:var(--acc);text-decoration:none;font-weight:600}
+.feat a:hover{text-decoration:underline}
+h3.h{font:600 20px Georgia,serif;margin:32px 0 10px}
+.fmt{display:flex;gap:4px;margin:6px 0 12px}
+.fmt span{padding:10px 4px;border-radius:8px;font:12px ui-monospace,monospace;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:#f8dcc4;color:#7a3b0c}
+.fmt span:nth-child(-n+2){background:#fbe9c0;color:var(--gold)}
+.fmt span:nth-child(n+3):nth-child(odd){background:#dcebf7;color:#2f5f8f}
+.tb{font-family:system-ui,sans-serif;font-size:14px;margin-top:0;background:var(--card);border:1px solid var(--line)}
+.tb th{background:#fbf5ea}
+.tb td.m{font:13px ui-monospace,monospace}
+.tb td.g{color:var(--ok);font-weight:700}.tb td.r{color:var(--bad);font-weight:700}
+.lim{margin:0;padding-left:20px;color:var(--mute)}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:8px 0}
+summary{cursor:pointer;font-weight:600}
+details p{margin:8px 0 0;color:var(--mute)}
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:rgba(43,33,24,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.modal[hidden]{display:none}
+.box{position:relative;width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 24px;box-shadow:0 24px 60px rgba(0,0,0,.25);animation:rise .35s ease both}
+.box h3{margin:0 0 14px;font:700 24px Georgia,serif}
+.box label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+.box input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--bg);color:var(--ink)}
+.x{position:absolute;top:8px;right:12px;border:0;background:transparent;font-size:28px;cursor:pointer;color:var(--mute);line-height:1}
+.lnote{font-size:12.5px;color:var(--mute);margin:12px 0 0}.lnote.err{color:var(--bad)}.lnote.ok{color:var(--ok)}
+@media(max-width:860px){.facts,.stack,.feat{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.facts,.stack,.feat{grid-template-columns:1fr}nav a{margin-left:8px;font-size:12px}.login{margin-left:0}}
+.info{position:absolute;top:4px;left:0;right:0;margin:auto;max-width:390px;background:rgba(255,253,249,.94);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;color:var(--mute);text-align:center;pointer-events:none;z-index:2}
+.info b{color:var(--ink)}
+.c{display:inline-block;width:15px;text-align:center;border-radius:3px;font:600 11px ui-monospace,monospace}
+.c.L{background:#dcebf7;color:#3a6a98}.c.G{background:#f8dcc4;color:#a24f12}
+.pc{display:inline-block;margin:2px 3px}
+button.btn{font:inherit;font-weight:600;cursor:pointer;margin-bottom:8px}
+.cells{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;perspective:600px}
+.cell{width:54px;height:66px;border-radius:12px;border:2px solid var(--line);font:700 22px Georgia,serif;cursor:pointer;transition:transform .15s,background .2s;line-height:1.1}
+.cell:hover{transform:translateY(-5px) rotateX(12deg)}
+.cell.L{background:#dcebf7;color:#3a6a98}.cell.G{background:#f8dcc4;color:#a24f12}
+.cell small{display:block;font:11px system-ui;color:var(--mute)}
+.labout{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
+.lo{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}
+.lo b{display:block;font:700 22px Georgia,serif}.lo small{color:var(--mute);font-size:12px}
+.chips{margin:10px 0 0}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:5px 12px;margin:0 6px 6px 0;font:inherit;font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--acc);color:var(--acc)}
+.barrow{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px}
+.barrow span{width:50px;color:var(--mute)}
+.barrow .tr{flex:1;height:18px;background:#eee3d2;border-radius:6px;overflow:hidden}
+.barrow i{display:block;height:100%;background:var(--acc);border-radius:6px;transition:width .25s}
+.barrow em{width:96px;font:normal 12px ui-monospace,monospace}
+.rv{opacity:0;transform:translateY(26px);transition:opacity .7s,transform .7s}.rv.in{opacity:1;transform:none}
+@media(max-width:860px){.labout{grid-template-columns:1fr 1fr}.cell{width:42px;height:56px}}
+@media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}}
+.rise{animation:rise .8s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.rise{animation:none}html{scroll-behavior:auto}}
+@media(max-width:860px){.hero .wrap{grid-template-columns:1fr}#stage{height:400px}.cards{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}nav a{margin-left:10px}}
+</style>
 </head>
 <body>
-  <!-- Universal Sticky Navigation Bar -->
-  <nav id="siteNav"></nav>
-
-  <main class="page-container">
-    <!-- SECTION 1: HERO -->
-    <section class="hero-section">
-      <div style="display:inline-flex; align-items:center; gap:8px; margin-bottom:14px;" class="pill">
-        <span style="color:var(--accent); font-weight:700;">CSE-03</span>
-        <span>&bull;</span>
-        <span>Indian Knowledge Systems</span>
-      </div>
-
-      <h1 class="display-title" style="margin-bottom:12px;">
-        Yukti <span style="font-family:'Cinzel', serif; font-weight:600; font-size:0.85em; color:var(--accent);">(युक्ति)</span>
-      </h1>
-
-      <p class="text-lead" style="margin: 0 auto; color: var(--text-secondary);">
-        Turning Acharya Pingala's classical combinatorics into a hardened, verified digital bitstream codec.
-      </p>
-
-      <!-- Exactly ONE primary button and ONE quiet secondary link -->
-      <div class="hero-actions">
-        <a href="codec.html" class="btn btn-primary btn-lg" id="btnOpenCodec">
-          <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-          <span>Open the Codec</span>
-        </a>
-        <a href="#idea" class="link-secondary">
-          <span>See how it works</span>
-          <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
-    </section>
-
-    <!-- SECTION 2: PROOF STRIP (Real data from tests & benchmarks) -->
-    <section class="proof-strip" aria-label="Project proof metrics">
-      <div class="proof-card">
-        <div class="proof-value" id="statTests">82 / 82</div>
-        <div class="proof-label">Automated Tests</div>
-        <div class="proof-detail">Python unit &amp; hypothesis checks passing</div>
-      </div>
-      <div class="proof-card">
-        <div class="proof-value" id="statParity">1,000 / 1,000</div>
-        <div class="proof-label">JS / Python Parity</div>
-        <div class="proof-detail">Bit-for-bit identical serialization</div>
-      </div>
-      <div class="proof-card">
-        <div class="proof-value" style="color:var(--success);">35.2%</div>
-        <div class="proof-label">Best Ratio (Sparse)</div>
-        <div class="proof-detail">360 bits vs 1,024 raw (zeros/sparse data)</div>
-      </div>
-      <div class="proof-card">
-        <div class="proof-value" style="color:var(--danger);">118.1%</div>
-        <div class="proof-label">Worst Ratio (Random)</div>
-        <div class="proof-detail">Balanced white noise (honest expansion)</div>
-      </div>
-    </section>
-
-    <!-- SECTION 3: THE PROBLEM AND THE IDEA -->
-    <section id="idea" class="card" style="margin-bottom: 32px;">
-      <h2 style="font-size: 24px; margin-bottom: 8px;">The Problem and the Core Idea</h2>
-      <p style="color:var(--text-secondary); margin-bottom: 16px;">
-        Traditional compression treats bitstreams as arbitrary byte sequences or tree symbols. 
-        Acharya Pingala's <em>Chhandas-Shastra</em> (~3rd–2nd c. BCE) treated binary sequences (Laghu <code>0</code> and Guru <code>1</code>) 
-        as points on a combinatorial lattice. Yukti chunks a bitstream into blocks of size <em>n</em> and stores each block 
-        as a coordinate pair <strong>(<em>k</em>, rank)</strong>, where <em>k</em> is the number of ones and <em>rank</em> is its exact lexicographic index among all <em>C(n, k)</em> combinations.
-      </p>
-
-      <!-- Small Diagram: bits to (k, rank) and back -->
-      <div class="diagram-flow">
-        <div class="diagram-node">
-          <div class="diagram-node-title">Input Block (n=8)</div>
-          <div class="diagram-node-content" style="color:var(--laghu-color);">01110011</div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">Raw 8 bits</div>
-        </div>
-
-        <div class="diagram-arrow">
-          <span>Uddishta (Encode)</span>
-          <svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </div>
-
-        <div class="diagram-node" style="border-color:var(--accent); background:var(--accent-surface);">
-          <div class="diagram-node-title" style="color:var(--accent);">Combinadic Coordinate</div>
-          <div class="diagram-node-content">(k = 5, rank = 15)</div>
-          <div style="font-size:11px; color:var(--text-secondary); margin-top:3px;">
-            k: 4 bits &bull; rank: 6 bits = 10 bits
-          </div>
-        </div>
-
-        <div class="diagram-arrow">
-          <span>Nashta (Decode)</span>
-          <svg class="icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </div>
-
-        <div class="diagram-node">
-          <div class="diagram-node-title">Reconstructed Block</div>
-          <div class="diagram-node-content" style="color:var(--laghu-color);">01110011</div>
-          <div style="font-size:11px; color:var(--success); margin-top:3px;">Exact lossless recovery</div>
-        </div>
-      </div>
-
-      <p class="text-small" style="margin-top: 12px;">
-        When <em>k</em> is small or large (sparse or dense data), <em>C(n, k)</em> is tiny and requires far fewer bits than <em>n</em>.
-        Because both the encoder and decoder share the identical binomial pyramid (Mount Meru), decoding is purely deterministic arithmetic without transmission tables.
-      </p>
-    </section>
-
-    <!-- SECTION 4: PINGALA VOCABULARY MAPPED TO CODE -->
-    <section class="card" style="margin-bottom: 32px;">
-      <h2 style="font-size: 24px; margin-bottom: 8px;">Pingala Vocabulary Mapped to Digital Code</h2>
-      <p style="color:var(--text-secondary); margin-bottom: 16px;">
-        How ancient prosodic metrics translate directly into modern computer science primitives in Yukti:
-      </p>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Classical Sanskrit Term</th>
-              <th>Prosodic Metric Meaning</th>
-              <th>Computer Science Equivalent</th>
-              <th>Yukti Implementation</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Laghu (L) / Guru (G)</strong></td>
-              <td>Short syllable (1 matra) / Long syllable (2 matras)</td>
-              <td>Binary bits <code>0</code> and <code>1</code></td>
-              <td><code>backend/core.py</code></td>
-            </tr>
-            <tr>
-              <td><strong>Prastara (प्रस्तार)</strong></td>
-              <td>Exhaustive expansion of all combinations</td>
-              <td>Boolean hypercube {0, 1}<sup>n</sup> / truth table</td>
-              <td><code>prastara(n)</code></td>
-            </tr>
-            <tr>
-              <td><strong>Meru Prastara (मेरु प्रस्तार)</strong></td>
-              <td>Staircase of Mount Meru (Pascal's Triangle)</td>
-              <td>Binomial coefficients <code>C(n, k)</code></td>
-              <td><code>meru_rows(r)</code></td>
-            </tr>
-            <tr>
-              <td><strong>Uddishta (उद्दिष्ट)</strong></td>
-              <td>Meter pattern &rarr; Serial Ordinal Position</td>
-              <td><strong>Encoding / Ranking</strong>: Block &rarr; (k, rank)</td>
-              <td><code>rank_block(b)</code></td>
-            </tr>
-            <tr>
-              <td><strong>Nashta (नष्ट)</strong></td>
-              <td>Serial Position &rarr; Reconstructed Pattern</td>
-              <td><strong>Decoding / Unranking</strong>: (k, rank) &rarr; Block</td>
-              <td><code>unrank_block(n, k, r)</code></td>
-            </tr>
-            <tr>
-              <td><strong>Matra-vritta (मात्रावृत्त)</strong></td>
-              <td>Meters constrained by total moraic weight M</td>
-              <td>Partitions counted by Fibonacci numbers</td>
-              <td><code>matra_vritta(m)</code></td>
-            </tr>
-            <tr>
-              <td><strong>Sankhya (संख्या)</strong></td>
-              <td>Total combination count</td>
-              <td>Cardinality of state space (&sum; C(n,k) = 2<sup>n</sup>)</td>
-              <td><code>/api/info</code></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- SECTION 5: HONEST RESULTS (Compresses vs Only Encodes) -->
-    <section class="card" style="margin-bottom: 32px;">
-      <h2 style="font-size: 24px; margin-bottom: 8px;">Honest Scientific Results: Compression vs. Encoding</h2>
-      <p style="color:var(--text-secondary); margin-bottom: 16px;">
-        By Shannon's Source Coding Theorem, no algorithm can compress every bitstream. Here is the measured reality on real 1,024-bit streams:
-      </p>
-
-      <div style="background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:20px; margin-bottom:20px;">
-        <!-- Bar 1: All Zeros -->
-        <div class="benchmark-bar-row">
-          <div class="benchmark-bar-label">All Zeros (Sparse)</div>
-          <div class="benchmark-bar-track">
-            <div class="benchmark-bar-fill" style="width: 35.2%; background: var(--success);"></div>
-          </div>
-          <div class="benchmark-bar-val" style="color:var(--success);">35.2%</div>
-        </div>
-
-        <!-- Bar 2: Sparse 5% ones -->
-        <div class="benchmark-bar-row">
-          <div class="benchmark-bar-label">Sparse (5% ones)</div>
-          <div class="benchmark-bar-track">
-            <div class="benchmark-bar-fill" style="width: 53.7%; background: var(--success);"></div>
-          </div>
-          <div class="benchmark-bar-val" style="color:var(--success);">53.7%</div>
-        </div>
-
-        <!-- Bar 3: Dense 95% ones -->
-        <div class="benchmark-bar-row">
-          <div class="benchmark-bar-label">Dense (95% ones)</div>
-          <div class="benchmark-bar-track">
-            <div class="benchmark-bar-fill" style="width: 54.0%; background: var(--success);"></div>
-          </div>
-          <div class="benchmark-bar-val" style="color:var(--success);">54.0%</div>
-        </div>
-
-        <!-- Bar 4: Balanced Random Noise -->
-        <div class="benchmark-bar-row">
-          <div class="benchmark-bar-label">Random (50% ones)</div>
-          <div class="benchmark-bar-track">
-            <div class="benchmark-bar-fill" style="width: 100%; background: var(--danger);"></div>
-          </div>
-          <div class="benchmark-bar-val" style="color:var(--danger);">118.1%</div>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div style="background:var(--success-bg); border:1px solid var(--success-border); border-radius:var(--radius-sm); padding:16px;">
-          <h3 style="color:var(--success); font-size:16px; margin-bottom:6px;">When It Truly Compresses (35% &ndash; 54% Ratio)</h3>
-          <p class="text-small" style="color:var(--text-secondary);">
-            On sparse streams, telemetry, or run-heavy bit patterns (<em>p</em> &le; 0.15 or <em>p</em> &ge; 0.85), almost all blocks have <em>k</em> near 0 or <em>n</em>. Because <em>C(64, 1) = 64</em> (6 bits) vs 64 raw bits, size drops by over 50%.
-          </p>
-        </div>
-
-        <div style="background:var(--danger-bg); border:1px solid var(--danger-border); border-radius:var(--radius-sm); padding:16px;">
-          <h3 style="color:var(--danger); font-size:16px; margin-bottom:6px;">When It Only Encodes (~115% &ndash; 130% Ratio)</h3>
-          <p class="text-small" style="color:var(--text-secondary);">
-            On balanced white noise (<em>p</em> = 0.5) or standard ASCII text, most blocks have <em>k &approx; n/2</em>. Storing both <em>k</em> and <em>rank</em> incurs coordinate overhead, causing expansion. Yukti reports this honestly without obfuscation.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 6: FOUR MODULE CARDS IN A 2x2 GRID (No orphans) -->
-    <section style="margin-bottom: 32px;">
-      <div style="margin-bottom: 20px;">
-        <h2 style="font-size: 24px; margin-bottom: 4px;">System Architecture &bull; 4 Dedicated Modules</h2>
-        <p style="color:var(--text-secondary);">
-          Explore each scientific domain through dedicated, standalone pages:
-        </p>
-      </div>
-
-      <div class="grid-2">
-        <!-- Module 1: Patterns -->
-        <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin:0;">
-          <div>
-            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; margin-bottom:6px;">Module 01 &bull; Foundations</div>
-            <h3 style="font-size: 20px; margin-bottom: 8px;">Combinatorics &amp; Prosody</h3>
-            <p class="text-small" style="margin-bottom: 16px;">
-              Exhaustive Prastara 2<sup>n</sup> expansion, interactive Mount Meru binomial pyramid, Fibonacci Matra partitions, and rhythmic Web Audio prosodic synthesis (Gayatri, Anushtubh).
-            </p>
-          </div>
-          <a href="patterns.html" class="btn btn-outline" style="justify-content:space-between;">
-            <span>Open Combinatorics</span>
-            <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </a>
-        </div>
-
-        <!-- Module 2: Codec -->
-        <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin:0;">
-          <div>
-            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; margin-bottom:6px;">Module 02 &bull; Codec Engine</div>
-            <h3 style="font-size: 20px; margin-bottom: 8px;">Codec Theatre &amp; Lab</h3>
-            <p class="text-small" style="margin-bottom: 16px;">
-              Real-time UTF-8 and raw bitstream encoding with step-by-step binomial walk visualization, <code>.meru v2</code> container export with CRC32, and an interactive bit-flip corruption lab.
-            </p>
-          </div>
-          <a href="codec.html" class="btn btn-primary" style="justify-content:space-between;">
-            <span>Open Codec Theatre</span>
-            <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </a>
-        </div>
-
-        <!-- Module 3: Benchmark -->
-        <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin:0;">
-          <div>
-            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; margin-bottom:6px;">Module 03 &bull; Rigorous Evaluation</div>
-            <h3 style="font-size: 20px; margin-bottom: 8px;">Scientific Benchmarks</h3>
-            <p class="text-small" style="margin-bottom: 16px;">
-              Shannon entropy bound <em>H(p)</em> canvas plotting, 2D block-size sweep heatmap (4 to 64), and side-by-side empirical comparison against zlib, gzip, bzip2, lzma, and RLE.
-            </p>
-          </div>
-          <a href="benchmark.html" class="btn btn-outline" style="justify-content:space-between;">
-            <span>Open Benchmarks</span>
-            <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </a>
-        </div>
-
-        <!-- Module 4: Verification -->
-        <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; margin:0;">
-          <div>
-            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; margin-bottom:6px;">Module 04 &bull; Quality Assurance</div>
-            <h3 style="font-size: 20px; margin-bottom: 8px;">Test Lab &amp; Parity</h3>
-            <p class="text-small" style="margin-bottom: 16px;">
-              14 in-browser unit tests, 10 cross-language golden test vectors, 1,000-case bit-for-bit parity verification between Python and JavaScript, and off-by-one boundary mutation traps.
-            </p>
-          </div>
-          <a href="verify.html" class="btn btn-outline" style="justify-content:space-between;">
-            <span>Open Test Lab</span>
-            <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 7: JUDGE GUIDE (90-second walkthrough, on-page, not a modal) -->
-    <section class="card" style="margin-bottom: 32px;" id="judge-guide">
-      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-        <h2 style="font-size: 24px; margin:0;">90-Second Hackathon Judge Guide</h2>
-        <span class="pill" style="font-size:11px; color:var(--accent);">Problem CSE-03 &bull; MeruCode</span>
-      </div>
-      <p style="color:var(--text-secondary); margin-bottom: 16px;">
-        Follow these 4 quick steps to evaluate every core criterion of the MeruCode brief:
-      </p>
-
-      <div class="judge-steps">
-        <div class="judge-step-card">
-          <div class="judge-step-num">1</div>
-          <div style="flex:1;">
-            <strong style="color:var(--text-primary); font-size:15px;">Combinatorics &amp; Prosody Verification</strong>
-            <p class="text-small" style="margin:4px 0 8px;">
-              Visit <a href="patterns.html" style="color:var(--accent); font-weight:600;">Combinatorics</a>. Expand Prastara to <em>n = 4</em>, hover Mount Meru pyramid cells to confirm the addition rule <em>C(n,k) = C(n-1, k-1) + C(n-1, k)</em>, and play the Web Audio synthesizer.
-            </p>
-            <a href="patterns.html" class="link-secondary" style="font-size:13px;">Open Combinatorics &rarr;</a>
-          </div>
-        </div>
-
-        <div class="judge-step-card">
-          <div class="judge-step-num">2</div>
-          <div style="flex:1;">
-            <strong style="color:var(--text-primary); font-size:15px;">Codec Engine &amp; Corruption Lab</strong>
-            <p class="text-small" style="margin:4px 0 8px;">
-              Visit <a href="codec.html" style="color:var(--accent); font-weight:600;">Codec Theatre</a>. Click "Sparse data (compresses)" to see real compression, then click "Plain text" to see the honest expansion explanation. Flip a bit in the corruption lab to observe combinadic error trapping.
-            </p>
-            <a href="codec.html" class="link-secondary" style="font-size:13px;">Open Codec Theatre &rarr;</a>
-          </div>
-        </div>
-
-        <div class="judge-step-card">
-          <div class="judge-step-num">3</div>
-          <div style="flex:1;">
-            <strong style="color:var(--text-primary); font-size:15px;">Scientific Benchmarking &amp; Shannon Bound</strong>
-            <p class="text-small" style="margin:4px 0 8px;">
-              Visit <a href="benchmark.html" style="color:var(--accent); font-weight:600;">Benchmarks</a>. Drag the Guru density slider to observe the theoretical Shannon entropy curve <em>H(p)</em> and inspect the block-size sweep heatmap (<em>n = 4..64</em>).
-            </p>
-            <a href="benchmark.html" class="link-secondary" style="font-size:13px;">Open Benchmarks &rarr;</a>
-          </div>
-        </div>
-
-        <div class="judge-step-card">
-          <div class="judge-step-num">4</div>
-          <div style="flex:1;">
-            <strong style="color:var(--text-primary); font-size:15px;">Test Suite &amp; Golden Vectors</strong>
-            <p class="text-small" style="margin:4px 0 8px;">
-              Visit <a href="verify.html" style="color:var(--accent); font-weight:600;">Test Lab</a>. Run the 14 client tests live in browser, review the 10 golden test vectors, and confirm cross-language parity with the Python backend.
-            </p>
-            <a href="verify.html" class="link-secondary" style="font-size:13px;">Open Test Lab &rarr;</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 8: CREDITS, DISCLAIMER, REPO LINK -->
-    <div class="footer-disclaimer">
-      <strong>Honesty &amp; Academic Integrity Disclaimer:</strong>
-      This project is inspired by Acharya Pingala's classical combinadic treatise <em>Chhandas-Shastra</em> (~3rd–2nd century BCE). 
-      The digital bitstream codec, 40-bit framing header, and <code>.meru v2</code> container are the team's modern engineering design. 
-      Pingala invented binary enumeration and combinatorics, not digital computer file compression.
+<header class="hero">
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<svg class="mandala" viewBox="0 0 600 600" aria-hidden="true"><g fill="none" stroke="#c9a46a" stroke-width="1.2"><circle cx="300" cy="300" r="290" stroke-dasharray="3 9"/><circle cx="300" cy="300" r="250"/><circle cx="300" cy="300" r="200" stroke-dasharray="14 8"/><circle cx="300" cy="300" r="120"/><g id="pt"></g></g></svg>
+<div class="wrap">
+  <nav style="grid-column:1/-1">
+    <a href="index.html" class="logo">Yuk<i>ti</i></a>
+    <div>
+      <a href="patterns.html" class="module-link">Combinatorics</a>
+      <a href="codec.html" class="module-link">Codec Theatre</a>
+      <a href="benchmark.html" class="module-link">Benchmarks</a>
+      <a href="verify.html" class="module-link">Test Lab</a>
+      <a href="#about">About</a>
+      <a href="#how">How it works</a>
+      <a href="#lab">Block lab</a>
+      <a href="#play">Playground</a>
+      <a href="#results">Results</a>
+      <a href="#tech">Tech</a>
+      <button class="login" id="loginBtn">Login</button>
     </div>
-  </main>
+  </nav>
+  <div class="rise">
+    <span class="tag">CSE-03 · Pingala’s Chhandas-Shastra</span>
+    <h1>Turn Pingala’s patterns into a <em>digital code</em></h1>
+    <p class="lead"><b style="color:var(--ink)">Yukti</b> (युक्ति) means “a clever method”. Every block of bits is described by two numbers: how many gurus it holds (<code>k</code>) and which pattern it is inside that group (<code>rank</code>). The Meru Prastara, the triangle you see here, supplies the counts.</p>
+    <a class="btn p" href="codec.html">Open Codec Theatre</a>
+    <button class="btn s" onclick="openLogin()">Login to Yukti</button>
+    <a class="btn s" href="#lab">Play with a block</a>
+    <div class="badge">The (k, rank) codec is our team’s own implementation, inspired by Pingala. It is not a historical compression system.</div>
+    <div class="pills"><span>82 automated tests</span><span>1000/1000 parity</span><span>Lossless decode</span></div>
+  </div>
+  <div id="stage" aria-label="Rotating 3D Meru Prastara, Pascal’s triangle"><div id="info" class="info">Click any ball to see its patterns</div><div class="hint">Move the mouse to turn the triangle. Each ball is C(n, k).</div></div>
+</div>
+</header>
 
-  <!-- Universal Footer -->
-  <footer id="siteFooter"></footer>
-  <div id="toast"></div>
+<div class="marq"><div><span>प्रस्तार Prastara</span><span>मेरु प्रस्तार Meru Prastara</span><span>उद्दिष्ट Uddishta</span><span>नष्ट Nashta</span><span>सङ्ख्या Sankhya</span><span>मात्रावृत्त Matra-vritta</span><span>प्रस्तार Prastara</span><span>मेरु प्रस्तार Meru Prastara</span><span>उद्दिष्ट Uddishta</span><span>नष्ट Nashta</span><span>सङ्ख्या Sankhya</span><span>मात्रावृत्त Matra-vritta</span></div></div>
+<main class="wrap">
+<section class="blk" id="about">
+  <h2>About the project</h2>
+  <p class="sub">Yukti answers the challenge “MeruCode” (CSE-03, Intermediate): create a program inspired by the binary patterns and combinatorial arrangements in Pingala’s Chhandas-Shastra.</p>
+  <div class="facts">
+    <div><b>The challenge</b><p>Define an encoding scheme, rebuild the input exactly, compare storage size and run time with a simple baseline, and show whether it compresses or only encodes.</p></div>
+    <div><b>The deliverable</b><p>An interactive pattern generator and encoder/decoder, with correctness tests and comparison results.</p></div>
+    <div><b>The heritage</b><p>Pingala’s prosody and the Meru Prastara. The method here is the team’s own, never claimed as a historical compression system.</p></div>
+    <div><b>Our answer</b><p>A lossless (k, rank) block codec, a Flask API, this web app, 82 tests and an honest benchmark against raw bits and zlib.</p></div>
+  </div>
+</section>
 
-  <!-- Scripts -->
-  <script src="js/core.js"></script>
-  <script src="js/shared.js"></script>
-  <script>
-    renderNavbar("home");
-    renderFooter();
+<section class="blk" id="features">
+  <h2>What you can do</h2>
+  <p class="sub">Everything runs in the browser, and the Python backend adds the API and the zlib baseline.</p>
+  <div class="feat">
+    <div><b>Pattern generator</b><span>List all 2ⁿ patterns and filter by the number of gurus.</span><br><a href="patterns.html">Open Combinatorics &rarr;</a></div>
+    <div><b>3D Meru Prastara</b><span>A live Pascal’s triangle. Click a ball to see its patterns.</span><br><a href="patterns.html">Explore Pyramid &rarr;</a></div>
+    <div><b>Encode and decode</b><span>Text (UTF-8) or raw bits, block size 1 to 64, exact roundtrip.</span><br><a href="codec.html">Open Codec Theatre &rarr;</a></div>
+    <div><b>Block table</b><span>See k, rank, group size and bits used for every block.</span><br><a href="codec.html">Inspect Blocks &rarr;</a></div>
+    <div><b>Baseline comparison</b><span>Size and time against raw bits and zlib.</span><br><a href="benchmark.html">View Benchmarks &rarr;</a></div>
+    <div><b>Playground</b><span>Slide the share of ones and watch compression appear or vanish.</span><br><a href="#play">Jump to Playground &rarr;</a></div>
+    <div><b>Self-tests</b><span>14 checks in the browser, 82 in Python.</span><br><a href="verify.html">Open Test Lab &rarr;</a></div>
+    <div><b>REST API</b><span>Eleven JSON endpoints for patterns, encode, decode and compare.</span><br><a href="/api/docs" target="_blank">API Docs &rarr;</a></div>
+  </div>
+</section>
 
-    // Dynamically update proof stats from real health/info API if available
-    fetch("/api/info")
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.header_bits) {
-          // Connected and verified
-        }
-      })
-      .catch(() => {});
-  </script>
+<section class="blk" id="how">
+  <h2>Three ideas from Pingala</h2>
+  <p class="sub">L (laghu) is 0 and G (guru) is 1. These three old ideas become a working encoder and decoder.</p>
+  <div class="cards">
+    <div class="card"><div class="num">1</div><h3>Prastara</h3><p>List every pattern of n syllables in a fixed order. For 3 syllables that is 2³ = 8 patterns, from <code>LLL</code> to <code>GGG</code>.</p></div>
+    <div class="card"><div class="num">2</div><h3>Meru Prastara</h3><p>The triangle where each number is the sum of the two above it. Row n, place k tells how many patterns have k gurus: C(n, k).</p></div>
+    <div class="card"><div class="num">3</div><h3>Uddishta and Nashta</h3><p>Uddishta turns a pattern into its rank (encode). Nashta turns the rank back into the pattern (decode). Nothing is lost.</p></div>
+  </div>
+</section>
+
+<section class="blk" id="flow">
+  <h2>From a word to Yukti and back</h2>
+  <p class="sub">The whole journey for “saket”, step by step. Nothing is lost on the way back.</p>
+  <div class="flow">
+    <div class="fs"><i>1</i><b>Text to bits</b><code>01110011 …</code><small>5 letters = 40 bits</small></div><div class="fa"></div>
+    <div class="fs"><i>2</i><b>Cut into blocks</b><code>s · a · k · e · t</code><small>8 bits each</small></div><div class="fa"></div>
+    <div class="fs"><i>3</i><b>Count and rank</b><code>k = 5, rank 15</code><small>Meru Prastara + Uddishta</small></div><div class="fa"></div>
+    <div class="fs"><i>4</i><b>Pack the stream</b><code>0101 001111</code><small>header + blocks = 92 bits</small></div><div class="fa"></div>
+    <div class="fs"><i>5</i><b>Decode</b><code>saket ✓</code><small>Nashta rebuilds each block</small></div>
+  </div>
+</section>
+
+<section class="blk" id="lab">
+  <h2>Block lab: build a pattern</h2>
+  <p class="sub">Click the cells to flip laghu (L) and guru (G). Watch k, the group size and the rank change as you build an 8-syllable block.</p>
+  <div class="demo">
+    <div id="cells" class="cells"></div>
+    <div><button class="btn s" onclick="labRand()">Random</button><button class="btn s" onclick="labSet('00000001')">Sparse</button><button class="btn s" onclick="labSet('01100101')">Letter “e”</button><button class="btn s" onclick="labSet('00000000')">Clear</button></div>
+    <div id="labout" class="labout"></div>
+    <p id="labmsg" class="sub" style="margin:12px 0 0"></p>
+  </div>
+</section>
+
+<section class="blk" id="try">
+  <h2>Try the encoder</h2>
+  <p class="sub">Type a few letters. Each letter becomes an 8-bit block, then a (k, rank) pair. The 40-bit header is counted too.</p>
+  <div class="demo">
+    <label for="w" style="color:var(--mute);font-size:14px">Your word (up to 16 letters)</label><br>
+    <input id="w" value="saket" maxlength="16" autocomplete="off">
+    <div class="chips"><button class="chip" onclick="setW('saket')">saket</button><button class="chip" onclick="setW('Pingala')">Pingala</button><button class="chip" onclick="setW('aaaaaaaa')">aaaaaaaa</button><button class="chip" onclick="setW('Meru Prastara')">Meru Prastara</button></div>
+    <div class="scroll"><table id="t"></table></div>
+    <div id="v" class="verdict"></div>
+    <p class="sub" style="margin:12px 0 0">Short text never shrinks here: letters have mixed bits, and the 40-bit header is paid once. The playground below shows when Yukti does help.</p>
+  </div>
+</section>
+
+<section class="blk" id="play">
+  <h2>Compression playground</h2>
+  <p class="sub">Drag the slider to change how many bits are guru (1). The data is 1024 bits long, coded in blocks of 16.</p>
+  <div class="demo">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:12px"><label for="dens">Ones in the data: <b id="dv">5%</b></label><input id="dens" type="range" min="0" max="100" value="5" style="width:min(380px,100%)"><button class="btn s" id="pa" onclick="playAuto()" style="margin:0">Sweep</button></div>
+    <canvas id="strip" width="512" height="28" style="width:100%;height:28px;border-radius:8px;border:1px solid var(--line)"></canvas>
+    <div class="barrow"><span>Raw</span><div class="tr"><i id="b1" style="background:#b9a58c"></i></div><em id="n1"></em></div>
+    <div class="barrow"><span>Yukti</span><div class="tr"><i id="b2"></i></div><em id="n2"></em></div>
+    <div id="pv" class="verdict"></div>
+    <canvas id="curve" width="520" height="140" style="width:100%;height:auto;margin-top:14px"></canvas>
+    <p class="sub" style="margin:6px 0 0">The curve shows the coded size for every density. The dot is your slider. Savings appear only near 0% and 100%.</p>
+  </div>
+</section>
+
+<section class="blk" id="results">
+  <h2>Does it compress, or only encode?</h2>
+  <p class="sub">Measured with our tested code, block sizes 8 or 16, header included.</p>
+  <div class="stats">
+    <div class="stat"><b>40 → 92</b><small>text “saket”, bits</small><div class="bars"><span style="width:100%"></span></div><div class="v r">ONLY ENCODES</div></div>
+    <div class="stat"><b>1024 → 550</b><small>sparse data, 5% ones</small><div class="bars"><span style="width:54%"></span></div><div class="v g">COMPRESSES</div></div>
+    <div class="stat"><b>1024 → 553</b><small>dense data, 95% ones</small><div class="bars"><span style="width:54%"></span></div><div class="v g">COMPRESSES</div></div>
+    <div class="stat"><b>1024 → 1297</b><small>random data, 50% ones</small><div class="bars"><span style="width:100%"></span></div><div class="v r">ONLY ENCODES</div></div>
+  </div>
+  <div class="honest"><b>What this means.</b> The scheme is lossless and every decode matches the input. It shrinks data that is mostly zeros or mostly ones, because those blocks fall into small groups. It does not shrink normal text, and a standard compressor such as zlib usually does better. We show this openly because the challenge asks for it.</div>
+</section>
+<section class="blk" id="table">
+  <h2>Measured results</h2>
+  <p class="sub">Sizes in bits, header included. zlib is the standard compressor used as a baseline.</p>
+  <div class="scroll"><table class="tb">
+    <tr><th>Input</th><th>Raw</th><th>Block</th><th>Yukti</th><th>zlib</th><th>Verdict</th></tr>
+    <tr><td>Text “saket”</td><td class="m">40</td><td class="m">8</td><td class="m">92</td><td class="m">104</td><td class="r">ONLY ENCODES</td></tr>
+    <tr><td>Text “Pingala Chhandas Shastra”</td><td class="m">192</td><td class="m">8</td><td class="m">278</td><td class="m">256</td><td class="r">ONLY ENCODES</td></tr>
+    <tr><td>All zeros</td><td class="m">1024</td><td class="m">16</td><td class="m">360</td><td class="m">96</td><td class="g">COMPRESSES</td></tr>
+    <tr><td>Sparse, 5% ones</td><td class="m">1024</td><td class="m">16</td><td class="m">550</td><td class="m">656</td><td class="g">COMPRESSES</td></tr>
+    <tr><td>Dense, 95% ones</td><td class="m">1024</td><td class="m">16</td><td class="m">553</td><td class="m">632</td><td class="g">COMPRESSES</td></tr>
+    <tr><td>Random, 50% ones</td><td class="m">1024</td><td class="m">8</td><td class="m">1297</td><td class="m">1112</td><td class="r">ONLY ENCODES</td></tr>
+    <tr><td>Alternating 0101</td><td class="m">1024</td><td class="m">16</td><td class="m">1256</td><td class="m">96</td><td class="r">ONLY ENCODES</td></tr>
+  </table></div>
+</section>
+
+<section class="blk" id="tech">
+  <h2>How it is built</h2>
+  <div class="stack">
+    <div><b>Backend</b><p>Python 3 and Flask. <code>core.py</code> holds the codec, <code>bench.py</code> compares size and time, <code>app.py</code> serves the API.</p></div>
+    <div><b>Frontend</b><p>One HTML page with plain JavaScript and three.js for the 3D triangle. The codec is also written in JavaScript, so it works offline.</p></div>
+    <div><b>Testing</b><p>82 Python tests and 14 browser tests. JavaScript and Python give identical output for the same input and seed.</p></div>
+    <div><b>Repeatable data</b><p>Test data comes from the seeded Mulberry32 generator, so every comparison can be run again exactly.</p></div>
+  </div>
+  <h3 class="h">The bit format</h3>
+  <div class="fmt"><span style="flex:30">length · 32</span><span style="flex:10">n · 8</span><span style="flex:6">k</span><span style="flex:12">rank</span><span style="flex:6">k</span><span style="flex:12">rank</span><span style="flex:4">…</span></div>
+  <p class="sub" style="margin:0">The 40-bit header holds the input length and the block size n. Each block then stores k in bit_length(n) bits and rank in bit_length(C(n,k) − 1) bits. A block saves space only when k is close to 0 or to n.</p>
+  <h3 class="h">API endpoints</h3>
+  <div class="scroll"><table class="tb">
+    <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+    <tr><td class="m">GET</td><td class="m">/api/health</td><td>Check that the server is running</td></tr>
+    <tr><td class="m">GET</td><td class="m">/api/prastara?n=3</td><td>All 2ⁿ patterns in order</td></tr>
+    <tr><td class="m">GET</td><td class="m">/api/meru?rows=9</td><td>Rows of Pascal’s triangle</td></tr>
+    <tr><td class="m">GET</td><td class="m">/api/matra?m=5</td><td>Matra-vritta patterns (Fibonacci counts)</td></tr>
+    <tr><td class="m">GET</td><td class="m">/api/uddishta, /api/nashta</td><td>Pattern to index, and index to pattern</td></tr>
+    <tr><td class="m">POST</td><td class="m">/api/generate</td><td>Seeded sparse, dense or random bits</td></tr>
+    <tr><td class="m">POST</td><td class="m">/api/encode</td><td>Encode text or bits, with a per-block table</td></tr>
+    <tr><td class="m">POST</td><td class="m">/api/decode</td><td>Decode a stream back to the original</td></tr>
+    <tr><td class="m">POST</td><td class="m">/api/compare</td><td>Size, time and verdict against raw bits and zlib</td></tr>
+  </table></div>
+</section>
+
+<section class="blk" id="limits">
+  <h2>Limits and questions</h2>
+  <p class="sub">What Yukti does not do well, and the answers people ask most.</p>
+  <ul class="lim">
+    <li>The 40-bit header is heavy for very short inputs.</li>
+    <li>k always costs the same bits, even for all-zero blocks, so “All zeros” is far larger than zlib’s result.</li>
+    <li>Very regular data such as 0101… is not shrunk, because every block has k = n/2.</li>
+    <li>One block size is used per stream, and the Flask server is for development.</li>
+  </ul>
+  <div style="margin-top:16px">
+    <details><summary>Does Yukti compress text?</summary><p>No. Short text grows (“saket” goes from 40 to 92 bits). Yukti only compresses data that is mostly zeros or mostly ones.</p></details>
+    <details><summary>Did Pingala invent this method?</summary><p>No. Pingala described the patterns and the Meru Prastara. The (k, rank) codec is this team’s own implementation, inspired by them.</p></details>
+    <details><summary>Is decoding exact?</summary><p>Yes. The codec is lossless. Every encode is checked by decoding it again, and the tests cover random inputs, Unicode text, empty input and corrupt streams.</p></details>
+    <details><summary>Why does zlib often win?</summary><p>zlib is a general-purpose compressor that finds repeats. Yukti only uses how many ones a block has, so it cannot see other structure.</p></details>
+  </div>
+</section>
+</main>
+
+<section class="cta"><div class="wrap"><h2>Encode. Decode. Stay honest.</h2><p>Yukti shrinks skewed data and says plainly when it cannot. That honesty is part of the design.</p><a class="btn" href="codec.html">Open Codec Theatre</a><a class="btn" href="#lab">Back to the block lab</a><a class="btn" href="#play">Open the playground</a></div></section>
+<footer><div class="wrap">Yukti · CSE-03 · Prastara, Meru Prastara, Uddishta and Nashta as a team implementation. Built with a Python backend, a web frontend and 82 correctness tests.</div></footer>
+
+<div id="lm" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="lt">
+  <div class="box">
+    <button class="x" onclick="closeLogin()" aria-label="Close">×</button>
+    <h3 id="lt">Login to Yukti</h3>
+    <label for="le">Email</label><input id="le" type="email" autocomplete="username" placeholder="you@example.com">
+    <label for="lp">Password</label><input id="lp" type="password" autocomplete="current-password" placeholder="At least 6 characters">
+    <button class="btn p" onclick="doLogin()" style="width:100%;margin:16px 0 0;text-align:center">Login</button>
+    <p id="lmsg" class="lnote">Demo screen: no account is checked yet. It is ready to be connected to the Flask backend.</p>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ---------- live encoder (n = 8) ----------
+function C(n,k){var r=1;for(var i=1;i<=k;i++)r=r*(n-k+i)/i;return Math.round(r);}
+function rank(b){var n=b.length,left=0,r=0,i;for(i=0;i<n;i++)if(b[i]==="1")left++;for(i=0;i<n;i++)if(b[i]==="1"){r+=C(n-i-1,left);left--;}return r;}
+function bl(x){return x===0?0:x.toString(2).length;}
+function run(){
+  var s=document.getElementById("w").value, bytes=Array.from(new TextEncoder().encode(s)), tb="", total=40;
+  var head="<tr><th>letter</th><th>8 bits</th><th>k</th><th>group</th><th>rank</th><th>bits used</th></tr>", rows="", chars=Array.from(s);
+  var ci=0;
+  bytes.forEach(function(b){
+    var blk=b.toString(2).padStart(8,"0"), k=blk.split("1").length-1, r=rank(blk), used=4+bl(C(8,k)-1);
+    total+=used; var label=chars[ci]&&new TextEncoder().encode(chars[ci]).length===1?chars[ci++]:"·";
+    rows+="<tr><td>"+label.replace(/</g,"&lt;")+"</td><td>"+blk+"</td><td>"+k+"</td><td>"+C(8,k)+"</td><td>"+r+"</td><td>"+used+"</td></tr>";
+  });
+  document.getElementById("t").innerHTML=head+rows;
+  var raw=bytes.length*8, v=document.getElementById("v");
+  if(!raw){v.className="verdict";v.textContent="Type something to encode.";return;}
+  var good=total<raw;
+  v.className="verdict "+(good?"good":"bad");
+  v.textContent=(good?"COMPRESSES: ":"ONLY ENCODES: ")+raw+" bits became "+total+" bits ("+(100*total/raw).toFixed(0)+"% of the original).";
+}
+document.getElementById("w").addEventListener("input",run);run();
+
+function bitsL(s){return s.split("").map(function(c){return '<span class="c '+(c==="1"?"G":"L")+'">'+(c==="1"?"G":"L")+'</span>';}).join("");}
+function unrank(n,k,r){var o="",left=k,i,c;for(i=0;i<n;i++){c=C(n-i-1,left);if(left>0&&r>=c){o+="1";r-=c;left--;}else o+="0";}return o;}
+function setW(s){document.getElementById("w").value=s;run();}
+
+// ---------- block lab ----------
+var lab="01100101";
+function labDraw(){
+  var cs=document.getElementById("cells");cs.innerHTML="";
+  lab.split("").forEach(function(b,i){var e=document.createElement("button");e.className="cell "+(b==="1"?"G":"L");
+    e.setAttribute("aria-label","syllable "+(i+1)+", "+(b==="1"?"guru":"laghu")+", click to flip");
+    e.innerHTML=(b==="1"?"G":"L")+"<small>"+b+"</small>";
+    e.onclick=function(){lab=lab.slice(0,i)+(b==="1"?"0":"1")+lab.slice(i+1);labDraw();};cs.appendChild(e);});
+  var k=lab.split("1").length-1,r=rank(lab),g=C(8,k),rb=bl(g-1),used=4+rb,back=unrank(8,k,r),d=used-8;
+  document.getElementById("labout").innerHTML=
+   '<div class="lo"><small>k (gurus)</small><b>'+k+'</b></div><div class="lo"><small>group size C(8,'+k+')</small><b>'+g+'</b></div><div class="lo"><small>rank in the group</small><b>'+r+'</b></div><div class="lo"><small>index among all 256</small><b>'+parseInt(lab,2)+'</b></div>';
+  document.getElementById("labmsg").innerHTML="Stored as k (4 bits) + rank ("+rb+" bits) = <b>"+used+" bits</b> against 8 raw bits: "+(d<0?"<span style='color:var(--ok)'>saves "+(-d)+" bit"+(d<-1?"s":"")+"</span>":d===0?"no change":"<span style='color:var(--bad)'>costs "+d+" extra bit"+(d>1?"s":"")+"</span>")+". Nashta check: ("+k+", "+r+") gives back "+bitsL(back)+(back===lab?" ✓":" ✗");
+}
+function labSet(s){lab=s;labDraw();}
+function labRand(){var s="",i;for(i=0;i<8;i++)s+=Math.random()<0.5?"1":"0";labSet(s);}
+labDraw();
+
+// ---------- compression playground (1024 bits, blocks of 16, Mulberry32) ----------
+function mb32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+var N=1024,B=16,U=[],q;for(q=0;q<=B;q++)U.push(5+bl(C(B,q)-1));
+function sizeFor(d){var rnd=mb32(7),tot=40,k=0,bits="",i,one;for(i=0;i<N;i++){one=rnd()<d;if(one)k++;bits+=one?"1":"0";if((i+1)%B===0){tot+=U[k];k=0;}}return {tot:tot,bits:bits};}
+var curve=[],cp;for(cp=0;cp<=100;cp+=2)curve.push(sizeFor(cp/100).tot);
+function playDraw(p){
+  var r=sizeFor(p/100),raw=N,max=Math.max(raw,r.tot),good=r.tot<raw,v=document.getElementById("pv"),i;
+  document.getElementById("dv").textContent=p+"%";
+  document.getElementById("b1").style.width=(100*raw/max)+"%";document.getElementById("b2").style.width=(100*r.tot/max)+"%";
+  document.getElementById("n1").textContent=raw+" bits";document.getElementById("n2").textContent=r.tot+" bits";
+  v.className="verdict "+(good?"good":"bad");
+  v.textContent=(good?"COMPRESSES: ":"ONLY ENCODES: ")+raw+" → "+r.tot+" bits ("+(100*r.tot/raw).toFixed(0)+"% of the original)";
+  var s=document.getElementById("strip"),g=s.getContext("2d");g.clearRect(0,0,s.width,s.height);
+  for(i=0;i<256;i++){g.fillStyle=r.bits[i]==="1"?"#e08a3c":"#cfe2f3";g.fillRect(i*2,0,2,s.height);}
+  var c=document.getElementById("curve"),x=c.getContext("2d"),W=c.width,H=c.height,top=Math.max.apply(null,curve)*1.08,ry=H-H*raw/top;
+  x.clearRect(0,0,W,H);x.strokeStyle="#c9b39a";x.lineWidth=1.5;x.setLineDash([5,4]);x.beginPath();x.moveTo(0,ry);x.lineTo(W,ry);x.stroke();x.setLineDash([]);
+  x.strokeStyle="#b3541e";x.lineWidth=2.5;x.beginPath();
+  curve.forEach(function(val,j){var px=j/(curve.length-1)*W,py=H-H*val/top;if(j)x.lineTo(px,py);else x.moveTo(px,py);});x.stroke();
+  var mi=Math.round(p/2);x.fillStyle="#b3541e";x.beginPath();x.arc(mi/(curve.length-1)*W,H-H*curve[mi]/top,6,0,6.283);x.fill();
+  x.fillStyle="#7a6a5a";x.font="12px system-ui";x.fillText("raw: 1024 bits",8,ry-6);x.fillText("0% ones",4,H-4);x.fillText("100% ones",W-66,H-4);
+}
+var dens=document.getElementById("dens"),sweepOn=false;
+dens.addEventListener("input",function(){playDraw(+dens.value);});playDraw(+dens.value);
+function playAuto(){var b=document.getElementById("pa");
+  if(sweepOn){sweepOn=false;b.textContent="Sweep";return;}
+  sweepOn=true;b.textContent="Stop";dens.value=0;playDraw(0);
+  (function step(){if(!sweepOn)return;var v=+dens.value+1;if(v>100){sweepOn=false;b.textContent="Sweep";return;}dens.value=v;playDraw(v);setTimeout(step,45);})();}
+
+// ---------- reveal on scroll ----------
+if("IntersectionObserver" in window){
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:0.1});
+  document.querySelectorAll("section.blk,.stat").forEach(function(el){el.classList.add("rv");io.observe(el);});
+}
+
+// ---------- login (demo screen, nothing is sent anywhere) ----------
+var user=null;
+function setLoginBtn(){document.getElementById("loginBtn").textContent=user?"Logout ("+user+")":"Login";}
+function openLogin(){if(user){user=null;setLoginBtn();return;}document.getElementById("lm").hidden=false;document.getElementById("le").focus();}
+function closeLogin(){document.getElementById("lm").hidden=true;}
+function doLogin(){var e=document.getElementById("le").value.trim(),p=document.getElementById("lp").value,n=document.getElementById("lmsg");
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){n.className="lnote err";n.textContent="Enter a valid email address.";return;}
+  if(p.length<6){n.className="lnote err";n.textContent="The password needs at least 6 characters.";return;}
+  user=e.split("@")[0];n.className="lnote ok";n.textContent="Logged in as "+user+" (demo only).";setLoginBtn();document.getElementById("lp").value="";setTimeout(closeLogin,1100);}
+document.getElementById("loginBtn").onclick=openLogin;
+document.getElementById("lm").addEventListener("click",function(e){if(e.target===this)closeLogin();});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeLogin();if(e.key==="Enter"&&!document.getElementById("lm").hidden)doLogin();});
+// ---------- mandala petals ----------
+(function(){var g=document.getElementById("pt"),i,e;for(i=0;i<12;i++){e=document.createElementNS("http://www.w3.org/2000/svg","ellipse");
+  e.setAttribute("cx",300);e.setAttribute("cy",190);e.setAttribute("rx",30);e.setAttribute("ry",70);e.setAttribute("transform","rotate("+(i*30)+" 300 300)");g.appendChild(e);}})();
+// ---------- glow follows the mouse ----------
+document.querySelectorAll(".card,.fs,.stat").forEach(function(el){el.addEventListener("pointermove",function(e){var r=el.getBoundingClientRect();el.style.setProperty("--mx",(e.clientX-r.left)+"px");el.style.setProperty("--my",(e.clientY-r.top)+"px");});});
+// ---------- count-up numbers ----------
+if("IntersectionObserver" in window&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+  var co=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;co.unobserve(e.target);var el=e.target,src=el.getAttribute("data-t"),t0=performance.now();
+    (function tick(now){var p=Math.min(1,(now-t0)/1200),ease=1-Math.pow(1-p,3);el.textContent=src.replace(/\d+/g,function(m){return Math.round(m*ease);});if(p<1)requestAnimationFrame(tick);})(t0);});},{threshold:0.4});
+  document.querySelectorAll(".stat b").forEach(function(el){el.setAttribute("data-t",el.textContent);co.observe(el);});
+}
+
+// ---------- 3D Meru Prastara ----------
+(function(){
+  if(typeof THREE==="undefined")return;
+  var box=document.getElementById("stage"), reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  box.insertBefore(renderer.domElement,box.firstChild);
+  var scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(40,1,0.1,100);
+  cam.position.set(0,0,19.5);
+  scene.add(new THREE.AmbientLight(0xffffff,0.8));
+  var dl=new THREE.DirectionalLight(0xffffff,0.75);dl.position.set(5,8,10);scene.add(dl);
+  var group=new THREE.Group();scene.add(group);
+
+  var ROWS=7,gap=1.85,nodes=[],P={},geo=new THREE.SphereGeometry(1,28,20);
+  function Cb(n,k){var r=1;for(var i=1;i<=k;i++)r=r*(n-k+i)/i;return Math.round(r);}
+  function tex(txt){
+    var c=document.createElement("canvas");c.width=c.height=96;var g=c.getContext("2d");
+    g.font="700 46px Georgia,serif";g.textAlign="center";g.textBaseline="middle";
+    g.lineWidth=7;g.strokeStyle="rgba(60,30,10,.55)";g.strokeText(txt,48,50);
+    g.fillStyle="#fff";g.fillText(txt,48,50);return new THREE.CanvasTexture(c);
+  }
+  var blue=new THREE.Color(0x6fa8dc),org=new THREE.Color(0xe08a3c);
+  for(var n=0;n<ROWS;n++)for(var k=0;k<=n;k++){
+    var t=n?k/n:0.5,val=Cb(n,k),rad=0.2+0.085*Math.log(val+1)/Math.LN2;
+    var x=(k-n/2)*gap,y=(ROWS/2-0.5-n)*gap*0.95,z=Math.cos(t*Math.PI)*1.1;
+    var m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:blue.clone().lerp(org,t),roughness:0.35,metalness:0.1}));
+    m.scale.setScalar(rad);m.position.set(x,y,z);group.add(m);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex(String(val)),transparent:true,depthTest:false}));
+    sp.scale.set(rad*1.5+0.3,rad*1.5+0.3,1);sp.position.set(x,y,z);sp.renderOrder=5;group.add(sp);
+    P[n+"_"+k]=m.position;nodes.push({m:m,base:rad,n:n,k:k});
+  }
+  var seg=[];
+  for(var a=0;a<ROWS-1;a++)for(var b=0;b<=a;b++){
+    [[a+1,b],[a+1,b+1]].forEach(function(c){var p=P[a+"_"+b],q=P[c[0]+"_"+c[1]];seg.push(p.x,p.y,p.z,q.x,q.y,q.z);});
+  }
+  var lg=new THREE.BufferGeometry();lg.setAttribute("position",new THREE.Float32BufferAttribute(seg,3));
+  group.add(new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:0xc9b39a})));
+
+  var pts=[],i;for(i=0;i<160;i++){var r=7+Math.random()*5,u=Math.random()*6.283,w=Math.acos(2*Math.random()-1);
+    pts.push(r*Math.sin(w)*Math.cos(u),r*Math.sin(w)*Math.sin(u)*0.8,r*Math.cos(w));}
+  var pg=new THREE.BufferGeometry();pg.setAttribute("position",new THREE.Float32BufferAttribute(pts,3));
+  var dust=new THREE.Points(pg,new THREE.PointsMaterial({color:0xb3541e,size:0.09,transparent:true,opacity:0.55}));scene.add(dust);
+
+  var ring=new THREE.Group();ring.rotation.x=1.15;ring.rotation.z=0.25;scene.add(ring);
+  var rg=new THREE.SphereGeometry(0.11,12,10),beads=[],bi;
+  for(bi=0;bi<48;bi++){var bm=new THREE.Mesh(rg,new THREE.MeshStandardMaterial({color:bi%2?0xe08a3c:0x6fa8dc,roughness:0.4}));ring.add(bm);beads.push(bm);}
+  ring.add(new THREE.Mesh(new THREE.TorusGeometry(6.8,0.02,8,160),new THREE.MeshBasicMaterial({color:0xd8c4a8})));
+  var gc=document.createElement("canvas");gc.width=gc.height=128;var gx=gc.getContext("2d"),gr=gx.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,"rgba(255,185,105,.6)");gr.addColorStop(1,"rgba(255,185,105,0)");gx.fillStyle=gr;gx.fillRect(0,0,128,128);
+  var halo=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(gc),transparent:true,depthWrite:false}));
+  halo.scale.set(24,24,1);halo.position.z=-7;scene.add(halo);
+  var mx=0,my=0;
+  box.addEventListener("pointermove",function(e){var r=box.getBoundingClientRect();mx=((e.clientX-r.left)/r.width-0.5)*2;my=((e.clientY-r.top)/r.height-0.5)*2;});
+  box.addEventListener("pointerleave",function(){mx=0;my=0;box.style.cursor="";});
+  var ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),meshes=nodes.map(function(o){return o.m;}),sel=null,info=document.getElementById("info");
+  function pick(e){var r=box.getBoundingClientRect();ndc.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,cam);
+    var h=ray.intersectObjects(meshes);return h.length?nodes.filter(function(o){return o.m===h[0].object;})[0]:null;}
+  function pats(n,k,max){var out=[];(function go(i,left,acc){if(out.length>=max)return;if(i===n){if(left===0)out.push(acc);return;}go(i+1,left,acc+"0");go(i+1,left-1,acc+"1");})(0,k,"");return out;}
+  box.addEventListener("pointermove",function(e){box.style.cursor=pick(e)?"pointer":"";});
+  box.addEventListener("click",function(e){var o=pick(e);if(!o)return;sel=o;var v=Cb(o.n,o.k),ps=pats(o.n,o.k,6);
+    info.innerHTML="<b>Row "+o.n+", k = "+o.k+": C("+o.n+","+o.k+") = "+v+"</b><br>"+(o.n?v+" pattern"+(v>1?"s":"")+" of "+o.n+" syllables with "+o.k+" guru":"The empty pattern")+"<br>"+
+      ps.map(function(p){return '<span class="pc">'+bitsL(p)+'</span>';}).join("")+(v>6?" …":"");});
+  function fit(){var w=box.clientWidth,h=box.clientHeight;if(!w||!h)return;renderer.setSize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix();}
+  window.addEventListener("resize",fit);fit();
+
+  var clock=new THREE.Clock(),tt=0,ry=0,rx=0;
+  function frame(){
+    requestAnimationFrame(frame);
+    var d=Math.min(clock.getDelta(),0.05);if(!reduce)tt+=d;
+    ry+=((Math.sin(tt*0.4)*0.55+mx*0.5)-ry)*0.06;rx+=((my*0.25)-rx)*0.06;
+    group.rotation.y=ry;group.rotation.x=rx;group.position.y=Math.sin(tt*0.9)*0.15;
+    dust.rotation.y=tt*0.05;
+    beads.forEach(function(b,i){var a=i/48*6.283+tt*0.35;b.position.set(Math.cos(a)*6.8,Math.sin(a)*6.8,0);b.scale.setScalar(1+0.35*Math.sin(tt*3+i));});
+    nodes.forEach(function(o){var wv=Math.max(0,Math.sin(tt*2.2-o.n*0.95));o.m.scale.setScalar(o.base*(1+0.22*wv+(o===sel?0.45:0)));});
+    renderer.render(scene,cam);
+  }
+  frame();
+})();
+</script>
 </body>
 </html>
