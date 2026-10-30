@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeruCode — Turn Pingala's Combinatorics into a Digital Encoding System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root, [data-theme="light"] {
+  --bg-deep: #f7f6f2;
+  --bg-surface: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.94);
+  --bg-card-hover: rgba(248, 245, 238, 0.98);
+  --border-gold: rgba(185, 130, 40, 0.26);
+  --border-gold-bright: rgba(195, 140, 45, 0.65);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  
+  --gold-300: #8c5e15;
+  --gold-400: #a0681a;
+  --gold-500: #b8791c;
+  --gold-600: #855310;
+  --terracotta: #cb532b;
+  --terracotta-glow: rgba(203, 83, 43, 0.22);
+  
+  --laghu-bg: rgba(14, 165, 233, 0.12);
+  --laghu-border: rgba(14, 165, 233, 0.45);
+  --laghu-text: #0284c7;
+  
+  --guru-bg: rgba(234, 88, 12, 0.12);
+  --guru-border: rgba(234, 88, 12, 0.45);
+  --guru-text: #c2410c;
+  
+  --emerald: #059669;
+  --emerald-bg: rgba(5, 150, 105, 0.12);
+  --emerald-border: rgba(5, 150, 105, 0.4);
+  --ruby: #e11d48;
+  --ruby-bg: rgba(225, 29, 72, 0.12);
+  --ruby-border: rgba(225, 29, 72, 0.4);
+  
+  --text-main: #181c24;
+  --text-muted: #4e5564;
+  --text-dim: #767d8d;
+  
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  
+  --shadow-gold: 0 10px 30px -5px rgba(185, 130, 40, 0.12);
+  --shadow-deep: 0 12px 35px -10px rgba(0, 0, 0, 0.08);
+
+  --body-bg-gradient:
+    radial-gradient(circle at 10% 8%, rgba(229, 177, 88, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 90% 90%, rgba(223, 105, 67, 0.10) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 60%),
+    linear-gradient(to bottom, #fcfbf8, #f3efe6);
+
+  --input-bg: #ffffff;
+  --table-header-bg: #f5f0e6;
+  --table-row-bg: #ffffff;
+  --table-row-hover: #f9f7f2;
+  --bits-bg: #f5f2ea;
+  --tri-bg: rgba(246, 242, 233, 0.85);
+  --tri-span-bg: #ffffff;
+  --pat-bg: #ffffff;
+  --note-bg: rgba(255, 255, 255, 0.88);
+  --title-gradient: linear-gradient(135deg, #683707 10%, #a46a16 55%, #cb532b 100%);
+}
+
+[data-theme="dark"] {
+  --bg-deep: #07080c;
+  --bg-surface: #0e111a;
+  --bg-card: rgba(18, 22, 34, 0.85);
+  --bg-card-hover: rgba(26, 32, 50, 0.95);
+  --border-gold: rgba(229, 177, 88, 0.22);
+  --border-gold-bright: rgba(245, 203, 125, 0.55);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  
+  --gold-300: #fae0a2;
+  --gold-400: #f5cb7d;
+  --gold-500: #e5b158;
+  --gold-600: #bd892e;
+  --terracotta: #df6943;
+  --terracotta-glow: rgba(223, 105, 67, 0.35);
+  
+  --laghu-bg: rgba(56, 189, 248, 0.12);
+  --laghu-border: rgba(56, 189, 248, 0.45);
+  --laghu-text: #7dd3fc;
+  
+  --guru-bg: rgba(245, 158, 11, 0.16);
+  --guru-border: rgba(245, 158, 11, 0.55);
+  --guru-text: #fcd34d;
+  
+  --emerald: #10b981;
+  --emerald-bg: rgba(16, 185, 129, 0.14);
+  --emerald-border: rgba(16, 185, 129, 0.4);
+  --ruby: #f43f5e;
+  --ruby-bg: rgba(244, 63, 94, 0.14);
+  --ruby-border: rgba(244, 63, 94, 0.4);
+  
+  --text-main: #f5efe6;
+  --text-muted: #a3a6bd;
+  --text-dim: #6c708a;
+  
+  --shadow-gold: 0 10px 35px -5px rgba(229, 177, 88, 0.15);
+  --shadow-deep: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+
+  --body-bg-gradient:
+    radial-gradient(circle at 10% 8%, rgba(229, 177, 88, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 90%, rgba(223, 105, 67, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.03) 0%, transparent 60%),
+    linear-gradient(to bottom, #07080c, #0d0f17);
+
+  --input-bg: rgba(10, 13, 20, 0.9);
+  --table-header-bg: rgba(16, 20, 32, 0.95);
+  --table-row-bg: rgba(11, 14, 22, 0.6);
+  --table-row-hover: rgba(26, 32, 50, 0.5);
+  --bits-bg: #06070a;
+  --tri-bg: rgba(8, 10, 16, 0.8);
+  --tri-span-bg: rgba(255, 255, 255, 0.03);
+  --pat-bg: rgba(10, 13, 20, 0.95);
+  --note-bg: rgba(18, 22, 34, 0.7);
+  --title-gradient: linear-gradient(135deg, #fffaf0 15%, var(--gold-400) 65%, var(--terracotta) 100%);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--bg-deep);
+  background-image: var(--body-bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-main);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  min-height: 100vh;
+  line-height: 1.6;
+  padding-bottom: 80px;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Header & Vedic Hero */
+header {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px 20px;
+}
+
+.hero-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  background: rgba(185, 130, 40, 0.12);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--gold-400);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.header-title-box h1 {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  background: var(--title-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.1;
+}
+
+.sub {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+}
+
+.pill.connected {
+  border-color: var(--emerald-border);
+  background: var(--emerald-bg);
+  color: var(--emerald);
+}
+
+.pill.offline {
+  border-color: var(--border-gold);
+  background: var(--guru-bg);
+  color: var(--gold-400);
+}
+
+.pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-gold);
+  color: var(--gold-400);
+  font-weight: 700;
+  padding: 9px 18px;
+  border-radius: var(--radius-full);
+  font-size: 13.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-deep);
+}
+.theme-toggle-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--gold-500);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-gold);
+}
+
+/* Audio Player Widget */
+.audio-widget {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--shadow-gold);
+}
+
+.audio-btn {
+  background: linear-gradient(135deg, var(--gold-500), var(--terracotta));
+  color: #ffffff;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.audio-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 4px 14px var(--terracotta-glow);
+}
+
+.audio-indicator {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+}
+.audio-indicator span {
+  width: 3px;
+  height: 100%;
+  background: var(--gold-400);
+  border-radius: 2px;
+  animation: soundBars 0.8s ease-in-out infinite alternate;
+}
+.audio-indicator span:nth-child(2) { animation-delay: 0.2s; height: 60%; }
+.audio-indicator span:nth-child(3) { animation-delay: 0.4s; height: 80%; }
+.audio-indicator.paused span { animation: none; height: 4px; opacity: 0.4; }
+
+@keyframes soundBars {
+  0% { height: 4px; }
+  100% { height: 18px; }
+}
+
+/* Method Note */
+.note {
+  margin-top: 22px;
+  padding: 14px 20px;
+  background: var(--note-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-gold);
+  border-left: 4px solid var(--gold-500);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.note b { color: var(--gold-300); }
+
+/* Navigation Tabs */
+nav#tabs {
+  max-width: 1200px;
+  margin: 18px auto 0;
+  padding: 0 24px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+nav#tabs button {
+  background: var(--bg-card);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 11px 20px;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+nav#tabs button:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+  border-color: var(--border-gold);
+  transform: translateY(-1px);
+}
+
+nav#tabs button.on {
+  background: linear-gradient(135deg, var(--gold-500), var(--terracotta));
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 800;
+  box-shadow: 0 4px 20px var(--terracotta-glow);
+  transform: translateY(-2px);
+}
+
+/* Main Container & Sections */
+main {
+  max-width: 1200px;
+  margin: 22px auto 50px;
+  padding: 0 24px;
+}
+
+section {
+  display: none;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-deep), var(--shadow-gold);
+  animation: tabFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+section.on {
+  display: block;
+}
+
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+h2 {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 16px 0;
+}
+
+label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-400);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+input, select, textarea {
+  background: var(--input-bg);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--gold-400);
+  box-shadow: 0 0 0 3px rgba(229, 177, 88, 0.25);
+}
+
+textarea {
+  width: 100%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.6;
+}
+
+/* Action Buttons */
+button.go {
+  background: linear-gradient(135deg, var(--gold-500), var(--terracotta));
+  color: #ffffff;
+  font-weight: 800;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px var(--terracotta-glow);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+button.go:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.12);
+  box-shadow: 0 6px 22px var(--terracotta-glow);
+}
+
+button.alt {
+  background: rgba(185, 130, 40, 0.08);
+  border: 1px solid var(--border-gold);
+  color: var(--gold-400);
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+button.alt:hover {
+  background: rgba(185, 130, 40, 0.18);
+  border-color: var(--gold-400);
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+/* Feature Cards Grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.vedic-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.vedic-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--gold-400);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-gold);
+}
+
+.vedic-card h4 {
+  font-family: 'Cinzel', serif;
+  color: var(--gold-400);
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vedic-card p {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Pattern Tiles */
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.pat {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--pat-bg);
+  border: 1px solid var(--border-subtle);
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  transition: all 0.2s ease;
+  color: var(--text-main);
+}
+
+.pat:hover {
+  border-color: var(--gold-400);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold);
+}
+
+.pat small {
+  color: var(--text-dim);
+  font-weight: 700;
+  margin-right: 6px;
+  font-size: 11px;
+}
+
+.s {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 11.5px;
+  letter-spacing: -0.5px;
+}
+
+.s.L {
+  background: var(--laghu-bg);
+  border: 1px solid var(--laghu-border);
+  color: var(--laghu-text);
+}
+
+.s.G {
+  background: var(--guru-bg);
+  border: 1px solid var(--guru-border);
+  color: var(--guru-text);
+}
+
+/* Meru Prastara Visualizer */
+.tri {
+  text-align: center;
+  margin-top: 20px;
+  overflow-x: auto;
+  padding: 24px 12px;
+  background: var(--tri-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-gold);
+}
+
+.tri div {
+  white-space: nowrap;
+  line-height: 2.3;
+}
+
+.tri span {
+  display: inline-block;
+  min-width: 52px;
+  padding: 3px 8px;
+  margin: 2px;
+  border-radius: var(--radius-xs);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--tri-span-bg);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.tri span:hover {
+  background: rgba(229, 177, 88, 0.25);
+  border-color: var(--gold-500);
+  color: var(--text-main);
+  transform: scale(1.1);
+}
+
+.tri span.hl {
+  background: linear-gradient(135deg, var(--gold-500), var(--terracotta));
+  color: #ffffff;
+  font-weight: 800;
+  border-color: transparent;
+  transform: scale(1.15);
+  box-shadow: 0 4px 16px var(--terracotta-glow);
+}
+
+/* Interactive Canvas Mountain */
+.canvas-container {
+  width: 100%;
+  height: 280px;
+  position: relative;
+  background: var(--tri-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-gold);
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+canvas#meruCanvas, canvas#entropyCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Drag & Drop File Zone */
+.dropzone {
+  border: 2px dashed var(--border-gold);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  text-align: center;
+  background: rgba(185, 130, 40, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 14px;
+}
+.dropzone:hover, .dropzone.dragover {
+  background: rgba(185, 130, 40, 0.09);
+  border-color: var(--gold-400);
+  box-shadow: 0 0 20px rgba(185, 130, 40, 0.15);
+}
+.dropzone-icon {
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+
+/* Tables */
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-gold);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13.5px;
+}
+
+th, td {
+  padding: 11px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+th {
+  color: var(--gold-400);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  background: var(--table-header-bg);
+}
+
+td {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-main);
+  background: var(--table-row-bg);
+}
+
+tr:hover td {
+  background: var(--table-row-hover);
+}
+
+/* Bitstream visualization */
+.bits {
+  word-break: break-all;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13.5px;
+  background: var(--bits-bg);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-top: 10px;
+  line-height: 1.8;
+  position: relative;
+  color: var(--text-main);
+}
+
+.bits b.h {
+  color: var(--gold-300);
+  background: rgba(185, 130, 40, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(185, 130, 40, 0.4);
+}
+
+.bits b.k {
+  color: #fb923c;
+  background: rgba(251, 146, 60, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.bits b.r {
+  color: var(--emerald);
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+/* Verdict Box */
+.verdict {
+  margin-top: 18px;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-deep);
+}
+
+.verdict.good {
+  background: var(--emerald-bg);
+  color: var(--emerald);
+  border: 1px solid var(--emerald-border);
+}
+
+.verdict.bad {
+  background: var(--ruby-bg);
+  color: var(--ruby);
+  border: 1px solid var(--ruby-border);
+}
+
+/* Benchmark Comparison Bars */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.bar .nm {
+  width: 140px;
+  color: var(--gold-400);
+  font-weight: 700;
+}
+
+.bar .tr {
+  flex: 1;
+  background: var(--bits-bg);
+  border-radius: var(--radius-full);
+  height: 24px;
+  overflow: hidden;
+  border: 1px solid var(--border-gold);
+  padding: 2px;
+}
+  border-radius: var(--radius-full);
+  height: 24px;
+  overflow: hidden;
+  border: 1px solid var(--border-gold);
+  padding: 2px;
+}
+
+.bar .fl {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--gold-500), var(--terracotta));
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 12px var(--terracotta-glow);
+}
+
+.bar .v {
+  width: 160px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: right;
+}
+
+.pass { color: var(--emerald); font-weight: 800; }
+.fail { color: var(--ruby); font-weight: 800; }
+
+.err {
+  color: var(--ruby);
+  background: var(--ruby-bg);
+  border: 1px solid var(--ruby-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+/* Toast Notification */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-gold);
+  color: var(--gold-400);
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  font-weight: 700;
+  box-shadow: var(--shadow-deep), var(--shadow-gold);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 9999;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); }
+::-webkit-scrollbar-thumb { background: rgba(229, 177, 88, 0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(229, 177, 88, 0.5); }
+
+@media(max-width: 768px) {
+  header { padding: 24px 16px 12px; }
+  .header-title-box h1 { font-size: 32px; }
+  main { padding: 0 16px; }
+  section { padding: 20px; }
+  .bar .nm { width: 90px; font-size: 12px; }
+  .bar .v { width: 110px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hero-bar">
+    <div class="header-title-box">
+      <div class="brand-badge">CSE-03 &bull; Indian Knowledge Systems &bull; Pingala Chhandas</div>
+      <h1>MeruCode</h1>
+      <p class="sub">
+        Turn Pingala's patterns into a digital encoding system
+        <span id="srv" class="pill"><span class="pill-dot"></span>backend: checking</span>
+      </p>
+    </div>
+
+    <!-- Header Controls: Theme Toggle & Acoustic Chhandas Rhythm Player -->
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <button class="theme-toggle-btn" id="themeToggle" title="Toggle Light / Dark theme">
+        <span id="themeIcon">☀️</span> <span id="themeLabel">Light Mode</span>
+      </button>
+
+      <div class="audio-widget">
+        <div>
+          <div style="font-size:11px; font-weight:700; color:var(--gold-400); text-transform:uppercase; letter-spacing:0.06em;">Acoustic Chhandas Engine</div>
+          <div style="font-size:12px; color:var(--text-muted);">Laghu: 1 Matra &bull; Guru: 2 Matras</div>
+        </div>
+        <button class="audio-btn" id="audioToggle">
+          <span id="audioIcon">▶</span> <span id="audioLabel">Play Rhythm</span>
+        </button>
+        <div class="audio-indicator paused" id="audioInd">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Method note:</b> The (k, rank) block codec is <b>this team's own implementation</b>, inspired by Acharya Pingala's Chhandas-Shastra (Prastara, Meru Prastara, Uddishta and Nashta). It is not a historical Indian compression system, and it does not always compress.
+  </div>
+</header>
+
+<nav id="tabs">
+  <button data-t="gen" class="on">1. Pattern Generator</button>
+  <button data-t="enc">2. Encode / Decode & Files</button>
+  <button data-t="cmp">3. Scientific Comparison</button>
+  <button data-t="tst">4. Correctness Tests</button>
+</nav>
+
+<main>
+
+<!-- Tab 1: Generator -->
+<section id="gen" class="on">
+  <h2>Prastara, Meru Prastara & Vedic Chhandas</h2>
+  <p class="hint">Laghu (L) = 0 (1 Matra), Guru (G) = 1 (2 Matras). Click any pattern to inspect Uddishta ranking and hear its classical rhythm.</p>
+  
+  <div class="row">
+    <label for="gn">Syllables n</label>
+    <input id="gn" type="number" min="1" max="8" value="4" style="width:75px">
+    <label for="gk">Highlight k</label>
+    <select id="gk"></select>
+    <label for="gm">Matra total</label>
+    <input id="gm" type="number" min="1" max="10" value="5" style="width:75px">
+    <button class="alt" id="gmv">Show Matra-vritta</button>
+  </div>
+  
+  <div id="gcount" class="hint" style="color:var(--gold-400); font-weight:700;"></div>
+  <div id="ggrid" class="grid"></div>
+  <div id="gsel" class="hint" style="margin-top:14px; font-family:'JetBrains Mono',monospace; color:var(--text-main); font-size:14px;"></div>
+  
+  <!-- Classical Vedic Metres Presets -->
+  <h2 style="margin-top:28px;">Classical Vedic Metres (Chhandas Library)</h2>
+  <p class="hint">Click any Vedic meter to load its historical syllable sequence, inspect its binary pattern, and listen to its prosody.</p>
+  <div class="cards-grid">
+    <div class="vedic-card" data-meter="gayatri">
+      <h4>Gayatri Chhandas <span>24 syllables</span></h4>
+      <p>ॐ भूर्भुवः स्वः तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि धियो यो नः प्रचोदयात्</p>
+    </div>
+    <div class="vedic-card" data-meter="anushtubh">
+      <h4>Anushtubh (Shloka) <span>32 syllables</span></h4>
+      <p>यदा यदा हि धर्मस्य ग्लानिर्भवति भारत अभ्युत्थानमधर्मस्य तदात्मानं सृजाम्यहम्</p>
+    </div>
+    <div class="vedic-card" data-meter="trishtubh">
+      <h4>Trishtubh <span>44 syllables</span></h4>
+      <p>इन्द्रो यात्वेह सहस्रभागः सोमस्य पातु कवितमः (Rigveda)</p>
+    </div>
+    <div class="vedic-card" data-meter="jagati">
+      <h4>Jagati <span>48 syllables</span></h4>
+      <p>चन्द्रमा मनसो जातश्चक्षोः सूर्यो अजायत (Purusha Sukta)</p>
+    </div>
+  </div>
+
+  <h2 style="margin-top:28px;">Meru Prastara (Binomial Combinatorics)</h2>
+  <div id="gtri" class="tri"></div>
+  <div id="gmatra"></div>
+</section>
+
+<!-- Tab 2: Encode / Decode & File Container -->
+<section id="enc">
+  <h2>Encode and Decode (k, rank) Block Codec</h2>
+  <p class="hint">Each block of n bits is factored into (k, rank). k = Guru count, rank = lexicographic position within group C(n,k).</p>
+  
+  <textarea id="ein" rows="3" placeholder="Type text or bit sequence...">saket</textarea>
+  
+  <div class="row">
+    <label for="emode">Input is</label>
+    <select id="emode">
+      <option value="text">text</option>
+      <option value="bits">bits (0/1)</option>
+    </select>
+    <label for="eblk">Block size</label>
+    <input id="eblk" type="number" min="1" max="64" value="8" style="width:75px">
+    <label for="epre">Preset</label>
+    <select id="epre"></select>
+    <button class="go" id="ego">⚡ Encode and decode</button>
+    <button class="alt" id="playStreamBtn">🎵 Chants Pattern</button>
+    <button class="alt" id="downloadMeruBtn">💾 Download .meru</button>
+  </div>
+
+  <!-- Drag and drop zone -->
+  <div class="dropzone" id="fileDropZone">
+    <div class="dropzone-icon">📥</div>
+    <div style="font-weight:700; color:var(--gold-400);">Drag & Drop any file (.txt, .json, .meru)</div>
+    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Directly compress or unpack MeruCode container files</div>
+    <input type="file" id="fileInput" style="display:none">
+  </div>
+
+  <div id="eout"></div>
+</section>
+
+<!-- Tab 3: Compare & Information Theory -->
+<section id="cmp">
+  <h2>Scientific Comparison: Compression vs Encoding</h2>
+  <p class="hint">Benchmarking storage size (bits) and latency (ms) against Raw bits and zlib (DEFLATE standard).</p>
+  
+  <div class="row">
+    <button class="alt" data-p="text">Text "saket"</button>
+    <button class="alt" data-p="sparse">Sparse (5% ones)</button>
+    <button class="alt" data-p="mostly_ones">Dense (95% ones)</button>
+    <button class="alt" data-p="balanced">Random (50% ones)</button>
+    <button class="alt" data-p="all_zeros">All zeros</button>
+    <label for="clen">Length (bits)</label>
+    <input id="clen" type="number" min="8" max="20000" value="1024" style="width:95px">
+    <label for="cblk">Block</label>
+    <input id="cblk" type="number" min="1" max="64" value="16" style="width:75px">
+  </div>
+
+  <div id="cout"></div>
+
+  <!-- Shannon Entropy & Mathematical Curve -->
+  <h2 style="margin-top:32px;">Information Theory & Shannon Entropy Curve</h2>
+  <p class="hint">The graph below plots binary entropy H(p) = -p log₂(p) - (1-p) log₂(1-p). MeruCode achieves true compression when data density p deviates from 0.5.</p>
+  <div class="canvas-container">
+    <canvas id="entropyCanvas"></canvas>
+  </div>
+</section>
+
+<!-- Tab 4: Tests -->
+<section id="tst">
+  <h2>Browser Correctness Verification Suite</h2>
+  <p class="hint">Comprehensive in-browser verification testing golden vectors ("saket"), roundtrips, PRNG determinism, and corrupt stream boundaries.</p>
+  <button class="go" id="trun">▶ Run test suite</button>
+  <div id="tout" style="margin-top:16px;"></div>
+</section>
+
+</main>
+
+<div id="toast">Copied to clipboard!</div>
+
+<script>
+// ==CORE==
+// pure functions, no DOM; also unit-tested from node
+const HEADER_BITS = 40;
+const C = (() => { const memo = new Map();
+  return (n, k) => { if (k < 0 || k > n) return 0n; if (k === 0 || k === n) return 1n;
+    const key = n * 100 + k; if (memo.has(key)) return memo.get(key);
+    const v = C(n - 1, k - 1) + C(n - 1, k); memo.set(key, v); return v; }; })();
+const bw = (x) => x === 0n ? 0 : x.toString(2).length;           // bit width of a BigInt
+const kWidth = (n) => n.toString(2).length;                       // bits to store k in 0..n
+const rankWidth = (n, k) => bw(C(n, k) - 1n);
+const pad = (v, w) => w === 0 ? "" : BigInt(v).toString(2).padStart(w, "0");
+function prastara(n) { const out = []; for (let i = 0; i < 2 ** n; i++) out.push(i.toString(2).padStart(n, "0")); return out; }
+function meruRows(r) { const rows = []; for (let i = 0; i < r; i++) { const row = []; for (let k = 0; k <= i; k++) row.push(C(i, k)); rows.push(row); } return rows; }
+function matraVritta(m) { const out = []; (function go(left, acc) { if (left === 0) { out.push(acc); return; } go(left - 1, acc + "L"); if (left >= 2) go(left - 2, acc + "G"); })(m, ""); return out; }
+function textToBits(t) { return Array.from(new TextEncoder().encode(t), b => b.toString(2).padStart(8, "0")).join(""); }
+function bitsToText(b) { if (b.length % 8) throw new Error("bit length is not a multiple of 8"); const a = new Uint8Array(b.length / 8);
+  for (let i = 0; i < a.length; i++) a[i] = parseInt(b.slice(i * 8, i * 8 + 8), 2);
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(a); } catch (e) { throw new Error("bits are not valid UTF-8 text"); } }
+function rankBlock(blk) { const n = blk.length; let left = 0; for (const c of blk) if (c === "1") left++; const k = left; let r = 0n;
+  for (let i = 0; i < n; i++) if (blk[i] === "1") { r += C(n - i - 1, left); left--; } return { k, r }; }
+function unrankBlock(n, k, r) { if (k < 0 || k > n) throw new Error("invalid k " + k); if (r < 0n || r >= C(n, k)) throw new Error("invalid rank");
+  let out = "", left = k; for (let i = 0; i < n; i++) { const c = C(n - i - 1, left); if (left > 0 && r >= c) { out += "1"; r -= c; left--; } else out += "0"; } return out; }
+function encode(bits, block) {
+  if (!/^[01]*$/.test(bits)) throw new Error("bits must contain only 0 and 1");
+  if (!Number.isInteger(block) || block < 1 || block > 64) throw new Error("block size must be 1..64");
+  const padded = bits + "0".repeat((block - bits.length % block) % block);
+  let out = pad(bits.length, 32) + pad(block, 8); const rows = []; const kw = kWidth(block);
+  for (let i = 0; i < padded.length; i += block) { const blk = padded.slice(i, i + block); const { k, r } = rankBlock(blk);
+    const rw = rankWidth(block, k); const kb = pad(k, kw), rb = pad(r, rw); out += kb + rb;
+    rows.push({ block: blk, k, rank: r, group: C(block, k), kb, rb, used: kw + rw }); }
+  return { encoded: out, rows }; }
+function decode(s) {
+  if (!/^[01]*$/.test(s)) throw new Error("stream must contain only 0 and 1");
+  if (s.length < HEADER_BITS) throw new Error("stream shorter than the 40-bit header");
+  const total = parseInt(s.slice(0, 32), 2), block = parseInt(s.slice(32, 40), 2);
+  if (block < 1 || block > 64) throw new Error("header has invalid block size");
+  let pos = 40; const kw = kWidth(block); const nb = Math.ceil(total / block); let out = "";
+  for (let i = 0; i < nb; i++) { if (pos + kw > s.length) throw new Error("stream ended while reading k");
+    const k = parseInt(s.slice(pos, pos + kw), 2); pos += kw; if (k > block) throw new Error("k is larger than block size");
+    const rw = rankWidth(block, k); if (pos + rw > s.length) throw new Error("stream ended while reading rank");
+    const r = rw ? BigInt("0b" + s.slice(pos, pos + rw)) : 0n; pos += rw; out += unrankBlock(block, k, r); }
+  if (pos !== s.length) throw new Error("extra bits after the last block");
+  return out.slice(0, total); }
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const PRESETS = { sparse: 0.05, mostly_ones: 0.95, balanced: 0.5, all_zeros: 0 };
+const PRESET_LABEL = { sparse: "Sparse (5% ones)", mostly_ones: "Dense (95% ones)", balanced: "Random (50% ones)", all_zeros: "All zeros", alternating: "Alternating 0101" };
+function makePreset(name, length, seed) { if (name === "alternating") return "01".repeat(length).slice(0, length);
+  const rnd = mulberry32(seed), d = PRESETS[name]; let s = ""; for (let i = 0; i < length; i++) s += rnd() < d ? "1" : "0"; return s; }
+function verdict(raw, meru) { if (!raw) return { good: false, text: "empty input" };
+  const pct = (100 * meru / raw).toFixed(1);
+  return meru < raw ? { good: true, text: `COMPRESSES: ${raw} bits -> ${meru} bits (${pct}% of original)` }
+                    : { good: false, text: `ONLY ENCODES: ${raw} bits -> ${meru} bits (${pct}% of original, larger)` }; }
+// ==/CORE==
+
+// ---- Helpers & DOM
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+let API = null;
+const spans = (p) => [...p].map(c => `<span class="s ${c === "1" ? "G" : "L"}">${c === "1" ? "G" : "L"}</span>`).join("");
+
+function showToast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+// ---- Acoustic Chhandas Synthesizer (Web Audio API)
+let audioCtx = null;
+let isAudioPlaying = false;
+let audioTimer = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+}
+
+function playMatraSound(type, durationMs = 200) {
+  initAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const now = audioCtx.currentTime;
+
+  if (type === "L") { // Laghu (Crisp Tabla Ta / Tin, 440Hz -> 360Hz)
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(360, now + 0.12);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  } else { // Guru (Resonant Bayan Dhin / Ghe, 160Hz -> 105Hz)
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(105, now + 0.35);
+    gain.gain.setValueAtTime(0.55, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.4);
+  }
+}
+
+function playRhythmSequence(patternStr) {
+  stopRhythm();
+  initAudio();
+  isAudioPlaying = true;
+  $("audioInd").classList.remove("paused");
+  $("audioLabel").textContent = "Stop Rhythm";
+  $("audioIcon").textContent = "⏹";
+
+  let i = 0;
+  function step() {
+    if (!isAudioPlaying || i >= patternStr.length) {
+      stopRhythm();
+      return;
+    }
+    const c = patternStr[i];
+    const type = (c === "1" || c === "G") ? "G" : "L";
+    playMatraSound(type);
+    const delay = type === "G" ? 380 : 220;
+    i++;
+    audioTimer = setTimeout(step, delay);
+  }
+  step();
+}
+
+function stopRhythm() {
+  isAudioPlaying = false;
+  if (audioTimer) clearTimeout(audioTimer);
+  $("audioInd").classList.add("paused");
+  $("audioLabel").textContent = "Play Rhythm";
+  $("audioIcon").textContent = "▶";
+}
+
+$("audioToggle").onclick = () => {
+  if (isAudioPlaying) {
+    stopRhythm();
+  } else {
+    const raw = $("ein").value;
+    const bits = $("emode").value === "text" ? textToBits(raw) : raw.replace(/\s/g, "");
+    playRhythmSequence(bits.slice(0, 32) || "01011001");
+  }
+};
+
+$("playStreamBtn").onclick = () => {
+  const raw = $("ein").value;
+  const bits = $("emode").value === "text" ? textToBits(raw) : raw.replace(/\s/g, "");
+  playRhythmSequence(bits.slice(0, 48));
+};
+
+// ---- Tab Switching
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("main section").forEach(s => s.classList.toggle("on", s.id === b.dataset.t));
+  if (b.dataset.t === "cmp") drawEntropyChart();
+});
+
+// ---- Tab 1: Pattern Generator
+function renderGen() {
+  const n = Math.min(8, Math.max(1, +$("gn").value || 1));
+  const ks = $("gk");
+  if (ks.options.length !== n + 2) {
+    ks.innerHTML = `<option value="-1">all</option>` + Array.from({ length: n + 1 }, (_, i) => `<option value="${i}">${i}</option>`).join("");
+  }
+  const k = +ks.value, all = prastara(n);
+  const shown = all.map((p, i) => ({ p, i })).filter(o => k < 0 || [...o.p].filter(c => c === "1").length === k);
+  $("gcount").textContent = `Sankhya: 2^${n} = ${2 ** n} patterns` + (k >= 0 ? `, ${shown.length} with exactly ${k} guru = C(${n},${k})` : "");
+  
+  $("ggrid").innerHTML = shown.map(o => `<div class="pat" data-i="${o.i}" data-p="${o.p}" style="cursor:pointer"><small>#${o.i}</small>${spans(o.p)}</div>`).join("");
+  
+  $("ggrid").querySelectorAll(".pat").forEach(e => e.onclick = () => {
+    const i = +e.dataset.i, p = e.dataset.p;
+    playRhythmSequence(p);
+    $("gsel").innerHTML = `<b>Selected:</b> Pattern <span style="color:var(--gold-400)">${p}</span> &rarr; Uddishta Rank: <b>${i}</b> &nbsp;|&nbsp; Nashta: (n=${n}, index ${i}) &rarr; <b>${p}</b> &nbsp;<span style="color:var(--emerald)">(Chanted)</span>`;
+  });
+
+  const rows = meruRows(Math.max(n + 1, 6));
+  $("gtri").innerHTML = rows.map((r, ri) => `<div>${r.map((v, ki) => `<span class="${ri === n && (k < 0 || ki === k) ? "hl" : ""}">${v}</span>`).join("")}</div>`).join("");
+}
+$("gn").oninput = () => { $("gk").innerHTML = ""; renderGen(); };
+$("gk").onchange = renderGen;
+$("gmv").onclick = () => {
+  const m = Math.min(10, Math.max(1, +$("gm").value || 1)), p = matraVritta(m);
+  $("gmatra").innerHTML = `<h2 style="margin-top:28px">Matra-vritta, Total ${m} Matra: ${p.length} patterns (Fibonacci Sequence)</h2><div class="grid">` +
+    p.map(x => `<div class="pat" style="cursor:pointer" onclick="playRhythmSequence('${x}')">${[...x].map(c => `<span class="s ${c}">${c}</span>`).join("")}</div>`).join("") + "</div>";
+};
+
+// Vedic Chhandas presets
+const VEDIC_METRES = {
+  gayatri: { text: "tat savitur vareṇyaṃ bhargo devasya dhīmahi dhiyo yo naḥ pracodayāt", pattern: "010101010101010101010101" },
+  anushtubh: { text: "yadā yadā hi dharmasya glānir bhavati bhārata", pattern: "01011001010110010101100101011001" },
+  trishtubh: { text: "indro yātveha sahasrabhāgaḥ somasya pātu kavitamaḥ", pattern: "010101101010101011010101010110101010101101" },
+  jagati: { text: "candramā manaso jātaś cakṣoḥ sūryo ajāyata", pattern: "010101101010010101101010010101101010010101101010" }
+};
+document.querySelectorAll(".vedic-card").forEach(c => c.onclick = () => {
+  const m = VEDIC_METRES[c.dataset.meter];
+  $("ein").value = m.text;
+  $("emode").value = "text";
+  playRhythmSequence(m.pattern);
+  showToast(`Loaded ${c.dataset.meter.toUpperCase()} Meter into Codec!`);
+  document.querySelector("#tabs button[data-t='enc']").click();
+  $("ego").click();
+});
+
+// ---- Tab 2: Encode / Decode
+$("epre").innerHTML = `<option value="">(none)</option>` + Object.entries(PRESET_LABEL).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+$("epre").onchange = () => {
+  if (!$("epre").value) return;
+  $("ein").value = makePreset($("epre").value, 96, 42);
+  $("emode").value = "bits";
+};
+
+let lastEncodedStream = "";
+
+$("ego").onclick = () => {
+  const out = $("eout");
+  try {
+    const raw = $("ein").value, mode = $("emode").value, block = +$("eblk").value;
+    const bits = mode === "text" ? textToBits(raw) : raw.replace(/\s/g, "");
+    const { encoded, rows } = encode(bits, block);
+    lastEncodedStream = encoded;
+    const back = decode(encoded);
+    const ok = back === bits, v = verdict(bits.length, encoded.length);
+    const shownRows = rows.slice(0, 60);
+
+    out.innerHTML = `<p class="hint" style="margin-top:16px;">Input: <b>${bits.length} bits</b>. Header (40 bits) = Length (32) + Block size (8). Per block: k (${kWidth(block)} bits) + rank (bits depend on C(${block},k)).</p>
+      <div class="table-wrap"><table><tr><th>#</th><th>Block</th><th>k (Gurus)</th><th>Rank</th><th>Group Size C(n,k)</th><th>k Bits</th><th>Rank Bits</th><th>Bits Used</th></tr>` +
+      shownRows.map((r, i) => `<tr><td>${i + 1}</td><td>${r.block}</td><td>${r.k}</td><td>${r.rank}</td><td>${r.group}</td><td>${r.kb}</td><td>${r.rb || "-"}</td><td>${r.used}</td></tr>`).join("") +
+      `</table></div>${rows.length > 60 ? `<p class="hint" style="margin-top:6px;">Showing first 60 of ${rows.length} blocks.</p>` : ""}
+      <div class="hint" style="margin-top:18px; font-weight:700;">Encoded bitstream (${encoded.length} bits) &mdash; <span style="color:var(--gold-400)">Gold: 40-bit Header</span></div>
+      <div class="bits"><b class="h">${encoded.slice(0, 40)}</b>${esc(encoded.slice(40))}</div>
+      <div class="hint" style="margin-top:14px; font-size:14.5px;">Decoded: ${ok ? '<span class="pass">&check; IDENTICAL TO INPUT</span>' : '<span class="fail">&cross; MISMATCH</span>'}${mode === "text" && ok ? " &rarr; <b>" + esc(bitsToText(back)) + "</b>" : ""}</div>
+      <div class="verdict ${v.good ? "good" : "bad"}">${v.text}</div>`;
+  } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+};
+
+// Download .meru Container
+$("downloadMeruBtn").onclick = () => {
+  if (!lastEncodedStream) $("ego").click();
+  if (!lastEncodedStream) return;
+  const bytes = new Uint8Array(Math.ceil(lastEncodedStream.length / 8));
+  for (let i = 0; i < lastEncodedStream.length; i++) {
+    if (lastEncodedStream[i] === "1") bytes[i >> 3] |= 128 >> (i & 7);
+  }
+  const blob = new Blob([bytes], { type: "application/octet-stream" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "encoded_archive.meru";
+  a.click();
+  showToast("Downloaded encoded_archive.meru!");
+};
+
+// Drag & Drop File Handling
+const dropZone = $("fileDropZone");
+dropZone.onclick = () => $("fileInput").click();
+dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add("dragover"); };
+dropZone.ondragleave = () => dropZone.classList.remove("dragover");
+dropZone.ondrop = (e) => {
+  e.preventDefault();
+  dropZone.classList.remove("dragover");
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+};
+$("fileInput").onchange = (e) => {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+};
+
+function handleFile(file) {
+  if (file.name.endsWith(".meru")) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const bytes = new Uint8Array(reader.result);
+      let s = "";
+      for (const b of bytes) s += b.toString(2).padStart(8, "0");
+      try {
+        const decodedBits = decode(s);
+        $("ein").value = bitsToText(decodedBits);
+        $("emode").value = "text";
+        showToast("Successfully unpacked .meru file!");
+        $("ego").click();
+      } catch (err) {
+        showToast("Error unpacking .meru: " + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = () => {
+      $("ein").value = reader.result;
+      $("emode").value = "text";
+      showToast(`Loaded ${file.name} (${file.size} bytes)!`);
+      $("ego").click();
+    };
+    reader.readAsText(file);
+  }
+}
+
+// ---- Tab 3: Compare & Information Theory
+async function zlibBits(bits) {
+  if (API !== null) {
+    try {
+      const r = await fetch(API + "/api/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bits, block: 8 })
+      });
+      const j = await r.json();
+      return { bits: j.zlib_bits, t: j.time_ms.zlib_compress, src: "python zlib" };
+    } catch (e) { }
+  }
+  if (typeof CompressionStream === "undefined") return null;
+  const bytes = new Uint8Array(Math.ceil(bits.length / 8));
+  for (let i = 0; i < bits.length; i++) if (bits[i] === "1") bytes[i >> 3] |= 128 >> (i & 7);
+  const t0 = performance.now();
+  const cs = new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate"));
+  const buf = await new Response(cs).arrayBuffer();
+  return { bits: buf.byteLength * 8, t: performance.now() - t0, src: "browser deflate" };
+}
+
+function bar(name, val, max, extra) {
+  return `<div class="bar"><span class="nm">${name}</span><span class="tr"><span class="fl" style="display:block;width:${Math.max(1, 100 * val / max)}%"></span></span><span class="v">${val} bits${extra || ""}</span></div>`;
+}
+
+async function runCompare(preset) {
+  const out = $("cout");
+  try {
+    const len = Math.min(20000, Math.max(8, +$("clen").value || 1024)), block = +$("cblk").value || 8;
+    const bits = preset === "text" ? textToBits("saket") : makePreset(preset, len, 42);
+    const reps = 20;
+    let t = performance.now(); let enc;
+    for (let i = 0; i < reps; i++) enc = encode(bits, block).encoded;
+    const te = (performance.now() - t) / reps;
+    t = performance.now(); let dec;
+    for (let i = 0; i < reps; i++) dec = decode(enc);
+    const td = (performance.now() - t) / reps;
+    const z = await zlibBits(bits), v = verdict(bits.length, enc.length);
+    let best = null;
+    for (const b of [2, 4, 8, 12, 16, 24, 32]) {
+      const n = encode(bits, b).encoded.length;
+      if (!best || n < best.n) best = { b, n };
+    }
+    const max = Math.max(bits.length, enc.length, z ? z.bits : 0);
+    out.innerHTML = `<p class="hint" style="margin-top:16px;">Input: <b>${preset === "text" ? '"saket"' : PRESET_LABEL[preset]}</b>, ${bits.length} bits, block ${block}. Roundtrip: ${dec === bits ? '<span class="pass">&check; OK (LOSSLESS)</span>' : '<span class="fail">&cross; FAILED</span>'}</p>` +
+      bar("Raw bits", bits.length, max) + bar("MeruCode", enc.length, max, ` (${(100 * enc.length / bits.length).toFixed(0)}%)`) +
+      (z ? bar("zlib standard", z.bits, max, "") : `<div class="hint">zlib not available (start backend)</div>`) +
+      `<div class="verdict ${v.good ? "good" : "bad"}">${v.text}</div>
+      <div class="table-wrap"><table><tr><th>Operation</th><th>Time (ms, avg of ${reps} runs)</th></tr><tr><td>MeruCode encode</td><td>${te.toFixed(3)} ms</td></tr><tr><td>MeruCode decode</td><td>${td.toFixed(3)} ms</td></tr>
+      ${z ? `<tr><td>zlib compress (${z.src})</td><td>${z.t.toFixed(3)} ms</td></tr>` : ""}</table></div>
+      <p class="hint" style="margin-top:14px; color:var(--gold-400)">Optimal block size found for this data: <b>Block ${best.b}</b> yields <b>${best.n} bits</b>. (The 40-bit header is included in all numbers above).</p>`;
+    
+    // Draw current point on entropy chart
+    const ones = (bits.match(/1/g) || []).length;
+    const p1 = bits.length ? ones / bits.length : 0.5;
+    drawEntropyChart(p1);
+  } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+}
+document.querySelectorAll("#cmp button[data-p]").forEach(b => b.onclick = () => runCompare(b.dataset.p));
+
+// Entropy Canvas Drawing
+function drawEntropyChart(currentP = null) {
+  const canvas = $("entropyCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+
+  const w = rect.width, h = rect.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const padX = 60, padY = 40;
+  const graphW = w - padX * 2, graphH = h - padY * 2;
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+
+  // Grid
+  ctx.strokeStyle = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padY + (graphH / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(padX, y);
+    ctx.lineTo(padX + graphW, y);
+    ctx.stroke();
+
+    ctx.fillStyle = isDark ? "#6c708a" : "#767d8d";
+    ctx.font = "11px 'JetBrains Mono', monospace";
+    ctx.fillText((1 - i * 0.25).toFixed(2), 20, y + 4);
+  }
+
+  // Draw H(p) curve
+  ctx.beginPath();
+  ctx.strokeStyle = isDark ? "#e5b158" : "#b8791c";
+  ctx.lineWidth = 3;
+  for (let x = 0; x <= graphW; x++) {
+    const p = x / graphW;
+    let val = 0;
+    if (p > 0 && p < 1) val = -p * Math.log2(p) - (1 - p) * Math.log2(1 - p);
+    const y = padY + graphH * (1 - val);
+    if (x === 0) ctx.moveTo(padX + x, y);
+    else ctx.lineTo(padX + x, y);
+  }
+  ctx.stroke();
+
+  // Axis Labels
+  ctx.fillStyle = isDark ? "#a3a6bd" : "#4e5564";
+  ctx.font = "12px 'Plus Jakarta Sans', sans-serif";
+  ctx.fillText("Data Density p (Probability of Guru / 1s)", padX + graphW / 2 - 110, h - 10);
+
+  // If a current point exists, plot it!
+  if (currentP !== null) {
+    const px = padX + currentP * graphW;
+    let hp = 0;
+    if (currentP > 0 && currentP < 1) hp = -currentP * Math.log2(currentP) - (1 - currentP) * Math.log2(1 - currentP);
+    const py = padY + graphH * (1 - hp);
+
+    ctx.beginPath();
+    ctx.arc(px, py, 7, 0, Math.PI * 2);
+    ctx.fillStyle = "#cb532b";
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = isDark ? "#f5cb7d" : "#8c5e15";
+    ctx.font = "bold 12px 'JetBrains Mono', monospace";
+    ctx.fillText(`Current: p=${currentP.toFixed(2)}, H(p)=${hp.toFixed(2)} b/b`, Math.min(px - 50, w - 180), Math.max(py - 14, 25));
+  }
+}
+
+// ---- Tab 4: Tests
+const TESTS = [
+  ["saket golden: 40 -> 92 bits", () => encode(textToBits("saket"), 8).encoded.length === 92],
+  ["saket ranks 15,30,12,26,33", () => encode(textToBits("saket"), 8).rows.map(r => Number(r.rank)).join() === "15,30,12,26,33"],
+  ["saket decodes to saket", () => bitsToText(decode(encode(textToBits("saket"), 8).encoded)) === "saket"],
+  ["all 256 blocks roundtrip", () => { for (let v = 0; v < 256; v++) { const b = v.toString(2).padStart(8, "0"); const { k, r } = rankBlock(b); if (unrankBlock(8, k, r) !== b) return false; } return true; }],
+  ["random roundtrip, many block sizes", () => { const rnd = mulberry32(5); for (let i = 0; i < 200; i++) { const n = Math.floor(rnd() * 200), bits = Array.from({ length: n }, () => rnd() < 0.5 ? "1" : "0").join(""), b = [1, 2, 3, 5, 8, 13, 16, 32, 64][Math.floor(rnd() * 9)]; if (decode(encode(bits, b).encoded) !== bits) return false; } return true; }],
+  ["unicode text roundtrip", () => ["संस्कृत", "café 😀"].every(s => bitsToText(decode(encode(textToBits(s), 8).encoded)) === s)],
+  ["empty input", () => decode(encode("", 8).encoded) === ""],
+  ["Matra-vritta counts are Fibonacci", () => [1, 2, 3, 4, 5, 6].map(m => matraVritta(m).length).join() === "1,2,3,5,8,13"],
+  ["Meru row 5 = 1,5,10,10,5,1", () => meruRows(6)[5].join() === "1,5,10,10,5,1"],
+  ["Mulberry32 is deterministic", () => { const a = mulberry32(9), b = mulberry32(9); return a() === b() && a() === b(); }],
+  ["sparse data compresses", () => encode(makePreset("sparse", 2048, 1), 16).encoded.length < 2048],
+  ["random data does not compress", () => encode(makePreset("balanced", 2048, 1), 8).encoded.length >= 2048],
+  ["corrupt stream throws", () => { const e = encode(textToBits("abc"), 8).encoded; for (const bad of [e.slice(0, -3), e + "0", e.slice(0, 20)]) { try { decode(bad); return false; } catch (x) { } } return true; }],
+  ["bad input throws", () => { try { encode("012", 8); return false; } catch (e) { } try { encode("01", 0); return false; } catch (e) { } return true; }],
+];
+
+$("trun").onclick = () => {
+  let pass = 0;
+  $("tout").innerHTML = "<div class='table-wrap'><table><tr><th>Status</th><th>Test Description</th></tr>" + TESTS.map(([name, fn]) => {
+    let ok = false; try { ok = fn(); } catch (e) { } if (ok) pass++;
+    return `<tr><td class="${ok ? "pass" : "fail"}">${ok ? "&check; PASS" : "&cross; FAIL"}</td><td>${name}</td></tr>`;
+  }).join("") + `</table></div><p class="hint" style="margin-top:14px; font-weight:800; color:${pass === TESTS.length ? 'var(--emerald)' : 'var(--ruby)'};">${pass} / ${TESTS.length} tests passed successfully.</p>`;
+};
+
+// ---- Theme Management (Defaults to Light Theme)
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("merucode_theme", theme);
+  const isLight = theme === "light";
+  const icon = $("themeIcon");
+  const label = $("themeLabel");
+  if (icon && label) {
+    icon.textContent = isLight ? "☀️" : "🌙";
+    label.textContent = isLight ? "Light Mode" : "Dark Mode";
+  }
+  if ($("cmp") && $("cmp").classList.contains("on")) {
+    drawEntropyChart();
+  }
+}
+
+const savedTheme = localStorage.getItem("merucode_theme") || "light";
+setTheme(savedTheme);
+
+$("themeToggle").onclick = () => {
+  const current = document.documentElement.getAttribute("data-theme") || "light";
+  setTheme(current === "light" ? "dark" : "light");
+};
+
+// ---- Initialization
+renderGen();
+fetch("/api/health").then(r => r.json()).then(() => {
+  API = "";
+  const srv = $("srv");
+  srv.className = "pill connected";
+  srv.innerHTML = `<span class="pill-dot"></span>backend: connected`;
+}).catch(() => {
+  const srv = $("srv");
+  srv.className = "pill offline";
+  srv.innerHTML = `<span class="pill-dot"></span>backend: offline (frontend still works)`;
+});
+</script>
+</body>
+</html>
