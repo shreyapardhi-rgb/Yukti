@@ -11,6 +11,8 @@ HEADER_LEN_BITS = 32   # total input length in bits
 HEADER_BLK_BITS = 8    # block size
 HEADER_BITS = HEADER_LEN_BITS + HEADER_BLK_BITS  # 40
 MAX_BLOCK = 64
+MAX_OUTPUT_BITS = 500000
+MAX_INPUT_BITS = 200000
 
 
 class MeruError(ValueError):
@@ -189,19 +191,22 @@ def encode(bits, block=8, detail=False):
     return (out, rows) if detail else out
 
 
-def decode(stream):
+def decode(stream, max_output_bits=MAX_OUTPUT_BITS):
     """encoded bit string -> original bits. Raises MeruError on corrupt input."""
     _check_bits(stream, field="stream")
     if len(stream) < HEADER_BITS:
         raise MeruError("stream shorter than the %d-bit header" % HEADER_BITS, code="HEADER_TOO_SHORT", position=len(stream))
     total = int(stream[:HEADER_LEN_BITS], 2)
     block = int(stream[HEADER_LEN_BITS:HEADER_BITS], 2)
+
+    if total > max_output_bits:
+        raise MeruError(f"claimed output bit length {total} exceeds maximum limit of {max_output_bits} bits", code="CLAIMED_LENGTH_TOO_LARGE", position=0)
     if not 1 <= block <= MAX_BLOCK:
         raise MeruError("header has invalid block size %d" % block, code="BAD_BLOCK_SIZE", position=HEADER_LEN_BITS)
     pos, kw = HEADER_BITS, k_width(block)
     nblocks = -(-total // block) if block else 0
 
-    # Safety check: required minimum stream length
+    # Pre-allocation safety check: every block requires AT LEAST kw bits for k
     min_required_bits = HEADER_BITS + nblocks * kw
     if len(stream) < min_required_bits:
         raise MeruError("stream shorter than minimum required for %d blocks" % nblocks, code="STREAM_TRUNCATED", position=len(stream))

@@ -220,5 +220,52 @@ class TestApi(unittest.TestCase):
         self.assertTrue(unpack_res["crc_verified"])
 
 
+class TestDecodeSafetyAndFuzz(unittest.TestCase):
+    def test_oversized_claimed_length_fails_instantly(self):
+        # 40-bit header claiming 4 billion bits
+        four_billion = format(4_000_000_000, "032b") + format(8, "08b")
+        with self.assertRaises(core.MeruError) as ctx:
+            decode(four_billion)
+        self.assertEqual(ctx.exception.code, "CLAIMED_LENGTH_TOO_LARGE")
+
+    def test_truncated_header_claims_rejected_pre_allocation(self):
+        # Claiming 1,000 bits with only 45 bits in stream
+        claimed_stream = format(1000, "032b") + format(8, "08b") + "01010"
+        with self.assertRaises(core.MeruError) as ctx:
+            decode(claimed_stream)
+        self.assertEqual(ctx.exception.code, "STREAM_TRUNCATED")
+
+    def test_fuzz_random_garbage_never_crashes(self):
+        rnd = random.Random(1337)
+        for _ in range(500):
+            # Generate random bit length up to 256
+            length = rnd.randint(0, 256)
+            garbage_bits = "".join(rnd.choice("01") for _ in range(length))
+            try:
+                res = decode(garbage_bits)
+                self.assertIsInstance(res, str)
+            except core.MeruError:
+                # Valid controlled rejection
+                pass
+            except Exception as e:
+                self.fail(f"decode() raised unexpected exception {type(e)} on input: {garbage_bits}")
+
+    def test_fuzz_single_bit_flips_on_valid_stream(self):
+        rnd = random.Random(42)
+        sample = core.make_preset("sparse", 256, 1)
+        valid_stream = encode(sample, 8)
+        for _ in range(200):
+            idx = rnd.randint(0, len(valid_stream) - 1)
+            flipped_bit = "0" if valid_stream[idx] == "1" else "1"
+            mutated = valid_stream[:idx] + flipped_bit + valid_stream[idx + 1:]
+            try:
+                res = decode(mutated)
+                self.assertIsInstance(res, str)
+            except core.MeruError:
+                pass
+            except Exception as e:
+                self.fail(f"decode() raised unexpected exception {type(e)} on mutated stream at index {idx}")
+
+
 if __name__ == "__main__":
     unittest.main()
