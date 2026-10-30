@@ -12,41 +12,64 @@ MAX_BLOCK = 64
 
 
 class MeruError(ValueError):
-    """Raised for any invalid input / corrupt stream."""
+    """Raised for any invalid input / corrupt stream.
+
+    Attributes:
+        message (str): Human-readable error description.
+        code (str): Machine-readable error code.
+        field (str, optional): The name of the invalid input field, if applicable.
+        position (int, optional): The bit/byte offset where the error occurred.
+    """
+    def __init__(self, message, code="BAD_INPUT", field=None, position=None):
+        super().__init__(message)
+        self.message = str(message)
+        self.code = str(code)
+        self.field = field
+        self.position = position
+
+    def to_dict(self):
+        d = {"code": self.code, "message": self.message}
+        if self.field is not None:
+            d["field"] = self.field
+        if self.position is not None:
+            d["position"] = self.position
+        return d
 
 
 # ---------- Pingala vocabulary ----------
 def prastara(n):
     """Prastara: all 2^n patterns of n syllables in a fixed order (L < G)."""
-    if not 0 <= n <= 16:
-        raise MeruError("n must be between 0 and 16 for listing")
+    if not isinstance(n, int) or isinstance(n, bool) or not 0 <= n <= 16:
+        raise MeruError("n must be an integer between 0 and 16 for listing", code="BAD_PRASTARA_N", field="n")
     return [format(i, "0%db" % n) if n else "" for i in range(2 ** n)]
 
 
 def meru_rows(rows):
     """Meru Prastara: Pascal's triangle, row r holds C(r, 0..r)."""
-    if not 1 <= rows <= 64:
-        raise MeruError("rows must be between 1 and 64")
+    if not isinstance(rows, int) or isinstance(rows, bool) or not 1 <= rows <= 64:
+        raise MeruError("rows must be an integer between 1 and 64", code="BAD_MERU_ROWS", field="rows")
     return [[comb(r, k) for k in range(r + 1)] for r in range(rows)]
 
 
 def uddishta(pattern):
     """Pattern -> index in the prastara order (ranking)."""
-    _check_bits(pattern)
+    _check_bits(pattern, field="pattern")
     return int(pattern, 2) if pattern else 0
 
 
 def nashta(n, index):
     """Index -> pattern in the prastara order (unranking)."""
-    if not 0 <= index < 2 ** n:
-        raise MeruError("index out of range for n=%d" % n)
+    if not isinstance(n, int) or isinstance(n, bool) or not 0 <= n <= 64:
+        raise MeruError("n must be an integer between 0 and 64", code="BAD_NASHTA_N", field="n")
+    if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < 2 ** n:
+        raise MeruError("index out of range for n=%d" % n, code="INDEX_OUT_OF_RANGE", field="index")
     return format(index, "0%db" % n) if n else ""
 
 
 def matra_vritta(total_matra):
     """Patterns of L(=1 matra) / G(=2 matra) that add up to total_matra. Count is Fibonacci."""
-    if not 1 <= total_matra <= 16:
-        raise MeruError("matra must be between 1 and 16")
+    if not isinstance(total_matra, int) or isinstance(total_matra, bool) or not 1 <= total_matra <= 16:
+        raise MeruError("matra must be an integer between 1 and 16", code="BAD_MATRA", field="total_matra")
     out = []
 
     def go(left, acc):
@@ -62,9 +85,9 @@ def matra_vritta(total_matra):
 
 
 # ---------- helpers ----------
-def _check_bits(bits):
+def _check_bits(bits, field="bits"):
     if not isinstance(bits, str) or any(c not in "01" for c in bits):
-        raise MeruError("bits must be a string of 0 and 1")
+        raise MeruError("bits must be a string of 0 and 1", code="INVALID_BITS", field=field)
 
 
 def k_width(n):
@@ -78,19 +101,26 @@ def rank_width(n, k):
 
 
 def text_to_bits(text):
-    return "".join(format(b, "08b") for b in text.encode("utf-8"))
+    if not isinstance(text, str):
+        raise MeruError("text must be a string", code="INVALID_TEXT", field="text")
+    try:
+        return "".join(format(b, "08b") for b in text.encode("utf-8"))
+    except UnicodeEncodeError as e:
+        raise MeruError("text encoding failed: %s" % e, code="INVALID_UNICODE", field="text")
 
 
 def bits_to_text(bits):
+    _check_bits(bits)
     if len(bits) % 8:
-        raise MeruError("bit length is not a multiple of 8, cannot read as text")
+        raise MeruError("bit length is not a multiple of 8, cannot read as text", code="BAD_TEXT_BIT_LENGTH")
     try:
         return bytes(int(bits[i:i + 8], 2) for i in range(0, len(bits), 8)).decode("utf-8")
     except UnicodeDecodeError:
-        raise MeruError("bits are not valid UTF-8 text")
+        raise MeruError("bits are not valid UTF-8 text", code="INVALID_UTF8")
 
 
 def bits_to_bytes(bits):
+    _check_bits(bits)
     pad = (-len(bits)) % 8
     b = bits + "0" * pad
     return bytes(int(b[i:i + 8], 2) for i in range(0, len(b), 8))
@@ -99,6 +129,7 @@ def bits_to_bytes(bits):
 # ---------- block rank / unrank ----------
 def rank_block(block):
     """Uddishta inside one block: returns (k, rank). Rank is 0-based, lexicographic with 0 < 1."""
+    _check_bits(block, field="block")
     n = len(block)
     k = block.count("1")
     left, r = k, 0
@@ -112,9 +143,10 @@ def rank_block(block):
 def unrank_block(n, k, r):
     """Nashta inside one block: (n, k, rank) -> pattern."""
     if not 0 <= k <= n:
-        raise MeruError("k=%d is invalid for block size %d" % (k, n))
-    if not 0 <= r < comb(n, k):
-        raise MeruError("rank %d is invalid for C(%d,%d)" % (r, n, k))
+        raise MeruError("k=%d is invalid for block size %d" % (k, n), code="BAD_K_VALUE")
+    limit = comb(n, k)
+    if not 0 <= r < limit:
+        raise MeruError("rank %d is invalid for C(%d,%d)" % (r, n, k), code="RANK_OUT_OF_RANGE")
     out, left = [], k
     for i in range(n):
         c = comb(n - i - 1, left)
@@ -131,10 +163,10 @@ def unrank_block(n, k, r):
 def encode(bits, block=8, detail=False):
     """bits string -> encoded bit string (header + per-block k and rank)."""
     _check_bits(bits)
-    if not 1 <= block <= MAX_BLOCK:
-        raise MeruError("block size must be between 1 and %d" % MAX_BLOCK)
+    if not isinstance(block, int) or isinstance(block, bool) or not 1 <= block <= MAX_BLOCK:
+        raise MeruError("block size must be between 1 and %d" % MAX_BLOCK, code="BAD_BLOCK_SIZE", field="block")
     if len(bits) >= 2 ** HEADER_LEN_BITS:
-        raise MeruError("input too long")
+        raise MeruError("input too long", code="INPUT_TOO_LONG", field="bits")
     padded = bits + "0" * ((-len(bits)) % block)
     parts = [format(len(bits), "0%db" % HEADER_LEN_BITS), format(block, "0%db" % HEADER_BLK_BITS)]
     rows = []
@@ -145,7 +177,9 @@ def encode(bits, block=8, detail=False):
         rw = rank_width(block, k)
         kb = format(k, "0%db" % kw)
         rb = format(r, "0%db" % rw) if rw else ""
-        parts += [kb, rb]
+        parts.append(kb)
+        if rb:
+            parts.append(rb)
         if detail:
             rows.append({"block": blk, "k": k, "rank": r, "group_size": comb(block, k),
                          "k_bits": kb, "rank_bits": rb, "bits_used": kw + rw})
@@ -155,31 +189,37 @@ def encode(bits, block=8, detail=False):
 
 def decode(stream):
     """encoded bit string -> original bits. Raises MeruError on corrupt input."""
-    _check_bits(stream)
+    _check_bits(stream, field="stream")
     if len(stream) < HEADER_BITS:
-        raise MeruError("stream shorter than the %d-bit header" % HEADER_BITS)
+        raise MeruError("stream shorter than the %d-bit header" % HEADER_BITS, code="HEADER_TOO_SHORT", position=len(stream))
     total = int(stream[:HEADER_LEN_BITS], 2)
     block = int(stream[HEADER_LEN_BITS:HEADER_BITS], 2)
     if not 1 <= block <= MAX_BLOCK:
-        raise MeruError("header has invalid block size %d" % block)
+        raise MeruError("header has invalid block size %d" % block, code="BAD_BLOCK_SIZE", position=HEADER_LEN_BITS)
     pos, kw = HEADER_BITS, k_width(block)
-    nblocks = -(-total // block)
+    nblocks = -(-total // block) if block else 0
+
+    # Safety check: required minimum stream length
+    min_required_bits = HEADER_BITS + nblocks * kw
+    if len(stream) < min_required_bits:
+        raise MeruError("stream shorter than minimum required for %d blocks" % nblocks, code="STREAM_TRUNCATED", position=len(stream))
+
     out = []
-    for _ in range(nblocks):
+    for blk_idx in range(nblocks):
         if pos + kw > len(stream):
-            raise MeruError("stream ended while reading k")
+            raise MeruError("stream ended while reading k", code="STREAM_TRUNCATED", position=pos)
         k = int(stream[pos:pos + kw], 2)
         pos += kw
         if k > block:
-            raise MeruError("k=%d is larger than block size" % k)
+            raise MeruError("k=%d is larger than block size" % k, code="K_EXCEEDS_BLOCK", position=pos - kw)
         rw = rank_width(block, k)
         if pos + rw > len(stream):
-            raise MeruError("stream ended while reading rank")
+            raise MeruError("stream ended while reading rank", code="STREAM_TRUNCATED", position=pos)
         r = int(stream[pos:pos + rw], 2) if rw else 0
         pos += rw
         out.append(unrank_block(block, k, r))
     if pos != len(stream):
-        raise MeruError("extra bits after the last block")
+        raise MeruError("extra bits after the last block", code="TRAILING_BITS", position=pos)
     return "".join(out)[:total]
 
 
@@ -207,10 +247,12 @@ PRESETS = {
 
 
 def make_preset(name, length=256, seed=42):
-    if name not in PRESETS:
-        raise MeruError("unknown preset")
-    if not 1 <= length <= 100000:
-        raise MeruError("length must be between 1 and 100000")
+    if not isinstance(name, str) or name not in PRESETS:
+        raise MeruError("unknown preset", code="UNKNOWN_PRESET", field="preset")
+    if not isinstance(length, int) or isinstance(length, bool) or not 1 <= length <= 100000:
+        raise MeruError("length must be between 1 and 100000", code="BAD_PRESET_LENGTH", field="length")
+    if not isinstance(seed, int) or isinstance(seed, bool):
+        raise MeruError("seed must be an integer", code="BAD_SEED", field="seed")
     if name == "alternating":
         return ("01" * length)[:length]
     d = PRESETS[name]["density"]

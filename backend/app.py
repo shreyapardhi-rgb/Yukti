@@ -9,55 +9,158 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FRONT = os.path.join(HERE, "..", "frontend")
 app = Flask(__name__)
 app.json.sort_keys = False
+
 MAX_INPUT_BITS = 200000
+MAX_CONTENT_LENGTH = 1 * 1024 * 1024  # 1 MB max request size
+app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
+
+# Configurable CORS origins (default: same origin + localhost variants)
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://127.0.0.1:5000,http://localhost:5000").split(",")
 
 
 @app.after_request
-def cors(resp):
-    resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+def add_security_headers(resp):
+    origin = request.headers.get("Origin")
+    if origin and (origin in ALLOWED_ORIGINS or "*" in ALLOWED_ORIGINS or origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:")):
+        resp.headers["Access-Control-Allow-Origin"] = origin
+    else:
+        resp.headers["Access-Control-Allow-Origin"] = ALLOWED_ORIGINS[0] if ALLOWED_ORIGINS else "http://127.0.0.1:5000"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["X-Frame-Options"] = "SAMEORIGIN"
     return resp
 
 
 @app.errorhandler(core.MeruError)
-def meru_error(e):
-    return jsonify({"error": str(e)}), 400
+def handle_meru_error(e):
+    return jsonify({"error": e.to_dict()}), 400
+
+
+@app.errorhandler(400)
+def handle_bad_request(e):
+    msg = getattr(e, "description", "bad request")
+    return jsonify({"error": {"code": "BAD_REQUEST", "message": str(msg)}}), 400
 
 
 @app.errorhandler(404)
-def not_found(_):
-    return jsonify({"error": "not found"}), 404
+def handle_not_found(_):
+    return jsonify({"error": {"code": "NOT_FOUND", "message": "resource not found"}}), 404
 
 
-def _body():
+@app.errorhandler(405)
+def handle_method_not_allowed(_):
+    return jsonify({"error": {"code": "METHOD_NOT_ALLOWED", "message": "method not allowed"}}), 405
+
+
+@app.errorhandler(413)
+def handle_payload_too_large(_):
+    return jsonify({"error": {"code": "PAYLOAD_TOO_LARGE", "message": "request payload exceeds maximum limit"}}), 413
+
+
+@app.errorhandler(415)
+def handle_unsupported_media_type(_):
+    return jsonify({"error": {"code": "UNSUPPORTED_MEDIA_TYPE", "message": "content-type must be application/json"}}), 415
+
+
+@app.errorhandler(429)
+def handle_rate_limit_exceeded(e):
+    resp = jsonify({"error": {"code": "TOO_MANY_REQUESTS", "message": "rate limit exceeded, please retry later"}})
+    resp.headers["Retry-After"] = "5"
+    return resp, 429
+
+
+@app.errorhandler(Exception)
+def handle_generic_exception(e):
+    # Log securely without leaking internal traceback to client
+    app.logger.error("Unhandled exception: %s", str(e), exc_info=True)
+    return jsonify({"error": {"code": "INTERNAL_SERVER_ERROR", "message": "internal server error"}}), 500
+
+
+# ---------- Parameter & Body Validation Helpers ----------
+def _parse_int(val, name, min_val=None, max_val=None, default=None):
+    """Safely parses and bounds an integer from query string or JSON."""
+    if val is None:
+        if default is not None:
+            return default
+        raise core.MeruError(f"'{name}' is required", code="MISSING_PARAMETER", field=name)
+    if isinstance(val, bool):
+        raise core.MeruError(f"'{name}' must be an integer, not a boolean", code="INVALID_TYPE", field=name)
+    if isinstance(val, (int, float)):
+        if isinstance(val, float):
+            if val != int(val):
+                raise core.MeruError(f"'{name}' must be an integer, not a float", code="INVALID_TYPE", field=name)
+            val = int(val)
+    elif isinstance(val, str):
+        val = val.strip()
+        try:
+            val = int(val)
+        except ValueError:
+            raise core.MeruError(f"'{name}' must be a valid integer", code="INVALID_INTEGER", field=name)
+    else:
+        raise core.MeruError(f"'{name}' must be an integer", code="INVALID_TYPE", field=name)
+
+    if min_val is not None and val < min_val:
+        raise core.MeruError(f"'{name}' must be at least {min_val}", code="VALUE_OUT_OF_RANGE", field=name)
+    if max_val is not None and val > max_val:
+        raise core.MeruError(f"'{name}' must be at most {max_val}", code="VALUE_OUT_OF_RANGE", field=name)
+    return val
+
+
+def _parse_str(val, name, max_len=None, required=True):
+    """Validates that val is a string within length bounds."""
+    if val is None:
+        if not required:
+            return ""
+        raise core.MeruError(f"'{name}' is required", code="MISSING_PARAMETER", field=name)
+    if not isinstance(val, str):
+        raise core.MeruError(f"'{name}' must be a string", code="INVALID_TYPE", field=name)
+    if max_len is not None and len(val) > max_len:
+        raise core.MeruError(f"'{name}' exceeds maximum allowed length of {max_len}", code="STRING_TOO_LONG", field=name)
+    return val
+
+
+def _body(allowed_fields=None):
+    """Validates that the request has a valid JSON dictionary body."""
+    if request.content_length and request.content_length > MAX_CONTENT_LENGTH:
+        raise core.MeruError("request payload exceeds maximum limit", code="PAYLOAD_TOO_LARGE")
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        raise core.MeruError("send a JSON object")
+        raise core.MeruError("send a JSON object", code="INVALID_JSON")
+    if allowed_fields is not None:
+        unexpected = set(data.keys()) - set(allowed_fields)
+        if unexpected:
+            raise core.MeruError(f"unexpected field(s): {', '.join(sorted(unexpected))}", code="UNEXPECTED_FIELD")
     return data
 
 
 def _input_bits(data):
     """Accepts {"text": "..."} or {"bits": "0101"}; returns (bits, mode)."""
-    if "bits" in data:
-        bits, mode = data["bits"], "bits"
-    elif "text" in data:
-        if not isinstance(data["text"], str):
-            raise core.MeruError("text must be a string")
-        bits, mode = core.text_to_bits(data["text"]), "text"
+    has_bits = "bits" in data
+    has_text = "text" in data
+    if has_bits and has_text:
+        raise core.MeruError("provide either 'text' or 'bits', not both", code="AMBIGUOUS_INPUT")
+    if has_bits:
+        bits_val = data["bits"]
+        if not isinstance(bits_val, str):
+            raise core.MeruError("'bits' must be a string of '0' and '1'", code="INVALID_TYPE", field="bits")
+        bits, mode = bits_val, "bits"
+    elif has_text:
+        text_val = data["text"]
+        if not isinstance(text_val, str):
+            raise core.MeruError("'text' must be a string", code="INVALID_TYPE", field="text")
+        bits, mode = core.text_to_bits(text_val), "text"
     else:
-        raise core.MeruError("give either text or bits")
-    core._check_bits(bits)
+        raise core.MeruError("give either text or bits", code="MISSING_INPUT")
+    core._check_bits(bits, field="bits")
     if len(bits) > MAX_INPUT_BITS:
-        raise core.MeruError("input too long (max %d bits)" % MAX_INPUT_BITS)
+        raise core.MeruError("input too long (max %d bits)" % MAX_INPUT_BITS, code="INPUT_TOO_LONG", field="bits")
     return bits, mode
 
 
-def _block(data):
-    b = data.get("block", 8)
-    if not isinstance(b, int) or isinstance(b, bool):
-        raise core.MeruError("block must be an integer")
-    return b
+def _block(data, default=8):
+    b = data.get("block", default)
+    return _parse_int(b, "block", min_val=1, max_val=core.MAX_BLOCK)
 
 
 @app.get("/api/health")
@@ -67,7 +170,7 @@ def health():
 
 @app.get("/api/prastara")
 def prastara():
-    n = request.args.get("n", default=3, type=int)
+    n = _parse_int(request.args.get("n"), "n", min_val=0, max_val=16, default=3)
     pats = core.prastara(n)
     return jsonify({"n": n, "count": len(pats), "patterns": pats,
                     "display": [p.replace("0", "L").replace("1", "G") for p in pats]})
@@ -75,29 +178,28 @@ def prastara():
 
 @app.get("/api/meru")
 def meru():
-    rows = request.args.get("rows", default=9, type=int)
+    rows = _parse_int(request.args.get("rows"), "rows", min_val=1, max_val=64, default=9)
     return jsonify({"rows": core.meru_rows(rows)})
 
 
 @app.get("/api/matra")
 def matra():
-    m = request.args.get("m", default=5, type=int)
+    m = _parse_int(request.args.get("m"), "m", min_val=1, max_val=16, default=5)
     pats = core.matra_vritta(m)
     return jsonify({"matra": m, "count": len(pats), "patterns": pats})
 
 
 @app.get("/api/uddishta")
 def uddishta():
-    p = request.args.get("pattern", "")
+    p = _parse_str(request.args.get("pattern"), "pattern", max_len=64, required=False)
+    core._check_bits(p, field="pattern")
     return jsonify({"pattern": p, "index": core.uddishta(p)})
 
 
 @app.get("/api/nashta")
 def nashta():
-    n = request.args.get("n", type=int)
-    i = request.args.get("index", type=int)
-    if n is None or i is None:
-        raise core.MeruError("n and index are required")
+    n = _parse_int(request.args.get("n"), "n", min_val=0, max_val=64)
+    i = _parse_int(request.args.get("index"), "index", min_val=0)
     return jsonify({"n": n, "index": i, "pattern": core.nashta(n, i)})
 
 
@@ -108,14 +210,17 @@ def presets():
 
 @app.post("/api/generate")
 def generate():
-    d = _body()
-    bits = core.make_preset(d.get("preset", "sparse"), int(d.get("length", 256)), int(d.get("seed", 42)))
+    d = _body(allowed_fields={"preset", "length", "seed"})
+    preset = _parse_str(d.get("preset", "sparse"), "preset", max_len=32)
+    length = _parse_int(d.get("length", 256), "length", min_val=1, max_val=100000)
+    seed = _parse_int(d.get("seed", 42), "seed")
+    bits = core.make_preset(preset, length, seed)
     return jsonify({"bits": bits, "ones": bits.count("1"), "length": len(bits)})
 
 
 @app.post("/api/encode")
 def encode():
-    d = _body()
+    d = _body(allowed_fields={"text", "bits", "block"})
     bits, mode = _input_bits(d)
     block = _block(d)
     enc, rows = core.encode(bits, block, detail=True)
@@ -126,8 +231,8 @@ def encode():
 
 @app.post("/api/decode")
 def decode():
-    d = _body()
-    enc = d.get("encoded", "")
+    d = _body(allowed_fields={"encoded", "as_text"})
+    enc = _parse_str(d.get("encoded"), "encoded", max_len=MAX_INPUT_BITS * 2)
     bits = core.decode(enc)
     out = {"bits": bits, "bit_length": len(bits)}
     if d.get("as_text"):
@@ -137,9 +242,11 @@ def decode():
 
 @app.post("/api/compare")
 def compare_route():
-    d = _body()
+    d = _body(allowed_fields={"text", "bits", "block", "repeats"})
     bits, _ = _input_bits(d)
-    return jsonify(compare(bits, _block(d)))
+    block = _block(d)
+    repeats = _parse_int(d.get("repeats", 20), "repeats", min_val=1, max_val=100) if "repeats" in d else 20
+    return jsonify(compare(bits, block, repeats=repeats))
 
 
 @app.get("/")
