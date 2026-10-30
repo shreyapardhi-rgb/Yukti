@@ -1,4 +1,4 @@
-# MeruCode (मेरु-कोड)
+# Yukti (युक्ति)
 
 > **Turning Acharya Pingala's Combinatorics into a Digital Encoding System**  
 > *Problem Category: CSE-03 (Intermediate) &bull; Indian Knowledge Systems &bull; Chhandas-Shastra*
@@ -13,7 +13,7 @@
 
 ## 📌 Method Note & Historical Context
 
-The $(k, \text{rank})$ block codec implemented in this project is **this team's own modern computer science design**, directly inspired by Acharya Pingala's *Chhandas-Shastra* (~3rd–2nd century BCE):
+The $(k, \text{rank})$ block codec implemented in **Yukti** is **this team's own modern computer science design**, directly inspired by Acharya Pingala's *Chhandas-Shastra* (~3rd–2nd century BCE):
 - **Prastara** (exhaustive binary enumeration)
 - **Meru Prastara** (Pascal's triangle / binomial coefficients)
 - **Uddishta** (ranking: pattern $\to$ index)
@@ -42,7 +42,7 @@ In Sanskrit metrics, **Laghu (L)** denotes a short syllable (1 Matra) and **Guru
 
 ## ⚙️ The Encoding Scheme (Exact Bit Layout)
 
-MeruCode breaks input bitstreams into blocks of size $n$ ($1 \le n \le 64$) and encodes each block by its guru count $k$ and its combinadic rank within that $k$-group:
+Yukti breaks input bitstreams into blocks of size $n$ ($1 \le n \le 64$) and encodes each block by its guru count $k$ and its combinadic rank within that $k$-group:
 
 ```text
 |---------------------- 40-bit Header ----------------------|------------------- Block Payload -------------------|
@@ -64,9 +64,9 @@ For each $n$-bit block:
 
 ## 🔬 Scientific Comparison: Compression vs. Expansion
 
-Information theory (Shannon entropy) dictates that no lossless algorithm can compress every possible input string. MeruCode provides an honest, measured analysis:
+Information theory (Shannon entropy) dictates that no lossless algorithm can compress every possible input string. Yukti provides an honest, measured analysis:
 
-| Data Type / Distribution | Characteristic | MeruCode Result | Why? |
+| Data Type / Distribution | Characteristic | Yukti Result | Why? |
 | :--- | :--- | :--- | :--- |
 | **Sparse (e.g. 5% ones)** | Skewed ($p \approx 0.05$) | **COMPRESSES** | Most blocks have $k=0$ or $k=1$. $C(8, 0)=1$ (0 rank bits) and $C(8, 1)=8$ (3 rank bits). Total per block is much less than 8 bits. |
 | **Dense (e.g. 95% ones)** | Skewed ($p \approx 0.95$) | **COMPRESSES** | Symmetric to sparse data; very few rank bits required. |
@@ -180,6 +180,50 @@ OK
 
 ---
 
+## 🎮 Interactive Features Guide (90-Second Judge Experience)
+
+Yukti transforms what used to be a static form-and-table app into a tactile, exploratory scientific demonstration:
+
+1. **⚡ 90-Second Judge Tour (`Start Tour` in header)**:
+   - A guided 6-step walkthrough taking evaluators from Pingala's prosodic metrics to live combinadic block ranking, reverse unranking, density sweep against the Shannon limit, and a final plain-language results card.
+2. **🎭 Encoding Theatre (Signature Feature)**:
+   - Block-by-block visual animation lifting syllables into Laghu/Guru tiles, ticking Guru counts $k$, and walking through the Mount Meru staircase to highlight active binomial terms $C(n-1-i, \text{left})$ in real-time.
+   - Includes transport controls (Play, Pause, Step forward/back, scrubber, speed), live Bits-In vs Bits-Out ratio gauge, and reverse Nashta decoding playback.
+3. **🔺 Interactive Mount Meru Playground**:
+   - Hover any cell to observe Pascal's parent addition rule ($C(n,k) = C(n-1, k-1) + C(n-1, k)$).
+   - Toggle overlays for Fibonacci diagonals (Matra-vritta), row sums ($2^n$), and the symmetry axis.
+   - Click any cell to inspect all $C(n, k)$ patterns in rank order and perform live Uddishta/Nashta unranking.
+4. **🧪 Bitstream Corruption Lab**:
+   - Flip any single bit in the 40-bit header or block payloads to observe mathematical syntax errors or corrupted decodes in real time.
+   - Highlights how combinadics inherently detect boundary violations without dedicated parity bits.
+5. **📊 Density Playground & Block-Size Heatmap**:
+   - Live Guru density slider $p \in [0, 1]$ generates dynamic synthetic streams and plots an animated tracer dot along Shannon's theoretical entropy curve $H(p)$.
+   - Interactive 2D heatmap ($p \times n$) displays compression ratios across block sizes $n \in [4..64]$. Clicking any cell instantly configures the codec.
+6. **🎵 Acoustic Pattern Composer**:
+   - Tappable Laghu and Guru pads (plus keyboard keys <kbd>L</kbd> and <kbd>G</kbd>) with real-time syllable counts, matras, Uddishta index, and synchronized Web Audio playhead animations.
+   - "Chant Encoded Stream" mode sonifies the compressed bitstream.
+7. **📸 Export & URL State Sync**:
+   - URL hash state (`#tab=...&input=...&blk=...&p=...`) allows deep-linking and state preservation.
+   - Export high-resolution PNG snapshots of the Theatre frame or test verification suite for report submission.
+
+---
+
+## 📝 CHANGELOG
+
+### Version 2.0.0 — Hackathon Interactive Overhaul
+- **Project Rebranding**: Renamed from MeruCode to **Yukti** across backend, frontend, API, and documentation.
+- **Design System & Theme**: Warm ivory / terracotta / Vedic gold color palette with dual-mode CSS tokens and persistent Light/Dark theme toggle.
+- **Encoding Theatre**: Introduced block carousel, animated syllable tiles, Guru counter, combinadic formula display, and mini-Meru walk synchronization.
+- **Live Mode**: Integrated 150ms debounced auto-encoding with real-time compression verdict chip and entropy explanation.
+- **Corruption Lab**: Added interactive bit flipper grid with combinadic boundary error detection and byte diff viewer.
+- **Density Playground**: Added Shannon entropy canvas with live tracer dot and interactive block-size sweep heatmap.
+- **Pattern Composer**: Built Web Audio prosodic synthesizer with synchronized playhead animation, Vedic presets, and keyboard controls.
+- **Judge Tour**: Built 90-second automated interactive tour dock and final evaluation modal.
+- **Verification**: Verified 100% pass rate on all 28 Python unit tests and 14 in-browser automated tests.
+
+---
+
 ## 📄 License
 
 This project is open-source under the [MIT License](LICENSE).
+

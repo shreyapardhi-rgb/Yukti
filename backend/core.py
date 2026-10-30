@@ -1,4 +1,4 @@
-"""MeruCode core: (k, rank) block codec built on the Meru Prastara (Pascal triangle).
+"""Yukti core: (k, rank) block codec built on the Meru Prastara (Pascal triangle).
 
 Team implementation inspired by Pingala's patterns. NOT a historical compression system.
 L (laghu) = 0, G (guru) = 1.

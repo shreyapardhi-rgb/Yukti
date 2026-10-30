@@ -1,4 +1,4 @@
-"""Flask API for MeruCode. Run: python app.py  ->  http://127.0.0.1:5000"""
+"""Flask API for Yukti. Run: python app.py  ->  http://127.0.0.1:5000"""
 import os
 from flask import Flask, jsonify, request, send_from_directory
 
@@ -62,7 +62,7 @@ def _block(data):
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "ok", "name": "MeruCode", "header_bits": core.HEADER_BITS})
+    return jsonify({"status": "ok", "name": "Yukti", "header_bits": core.HEADER_BITS})
 
 
 @app.get("/api/prastara")
