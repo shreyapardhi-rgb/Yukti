@@ -14,6 +14,18 @@ MAX_BLOCK = 64
 MAX_OUTPUT_BITS = 500000
 MAX_INPUT_BITS = 200000
 
+# Precomputed binomial coefficient table up to MAX_BLOCK (64)
+_BINOMIAL_TABLE = [[comb(n, k) for k in range(n + 1)] for n in range(MAX_BLOCK + 1)]
+
+
+def fast_comb(n, k):
+    """Fast binomial coefficient lookup from precomputed matrix."""
+    if k < 0 or k > n:
+        return 0
+    if n <= MAX_BLOCK:
+        return _BINOMIAL_TABLE[n][k]
+    return comb(n, k)
+
 
 class MeruError(ValueError):
     """Raised for any invalid input / corrupt stream.
@@ -52,7 +64,7 @@ def meru_rows(rows):
     """Meru Prastara: Pascal's triangle, row r holds C(r, 0..r)."""
     if not isinstance(rows, int) or isinstance(rows, bool) or not 1 <= rows <= 64:
         raise MeruError("rows must be an integer between 1 and 64", code="BAD_MERU_ROWS", field="rows")
-    return [[comb(r, k) for k in range(r + 1)] for r in range(rows)]
+    return [list(_BINOMIAL_TABLE[r]) for r in range(rows)]
 
 
 def uddishta(pattern):
@@ -101,7 +113,7 @@ def k_width(n):
 
 def rank_width(n, k):
     """Bits needed to store rank in 0..C(n,k)-1 (0 bits if only one pattern)."""
-    return (comb(n, k) - 1).bit_length()
+    return (fast_comb(n, k) - 1).bit_length()
 
 
 def text_to_bits(text):
@@ -139,7 +151,7 @@ def rank_block(block):
     left, r = k, 0
     for i, b in enumerate(block):
         if b == "1":
-            r += comb(n - i - 1, left)
+            r += fast_comb(n - i - 1, left)
             left -= 1
     return k, r
 
@@ -148,12 +160,12 @@ def unrank_block(n, k, r):
     """Nashta inside one block: (n, k, rank) -> pattern."""
     if not 0 <= k <= n:
         raise MeruError("k=%d is invalid for block size %d" % (k, n), code="BAD_K_VALUE")
-    limit = comb(n, k)
+    limit = fast_comb(n, k)
     if not 0 <= r < limit:
         raise MeruError("rank %d is invalid for C(%d,%d)" % (r, n, k), code="RANK_OUT_OF_RANGE")
     out, left = [], k
     for i in range(n):
-        c = comb(n - i - 1, left)
+        c = fast_comb(n - i - 1, left)
         if left > 0 and r >= c:
             out.append("1")
             r -= c
@@ -185,10 +197,24 @@ def encode(bits, block=8, detail=False):
         if rb:
             parts.append(rb)
         if detail:
-            rows.append({"block": blk, "k": k, "rank": r, "group_size": comb(block, k),
+            rows.append({"block": blk, "k": k, "rank": r, "group_size": fast_comb(block, k),
                          "k_bits": kb, "rank_bits": rb, "bits_used": kw + rw})
     out = "".join(parts)
     return (out, rows) if detail else out
+
+
+def encode_bytes(data: bytes, block=8) -> bytes:
+    """Fast-path encoding directly from raw bytes to .meru v2 container bytes."""
+    if not isinstance(data, (bytes, bytearray)):
+        raise MeruError("data must be bytes", code="INVALID_TYPE")
+    bits = "".join(format(b, "08b") for b in data)
+    return pack_container(bits, block=block)
+
+
+def decode_bytes(container_data: bytes) -> bytes:
+    """Fast-path decoding directly from container bytes to raw bytes."""
+    bits, _ = unpack_container(container_data)
+    return bits_to_bytes(bits)
 
 
 def decode(stream, max_output_bits=MAX_OUTPUT_BITS):

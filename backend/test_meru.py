@@ -267,5 +267,24 @@ class TestDecodeSafetyAndFuzz(unittest.TestCase):
                 self.fail(f"decode() raised unexpected exception {type(e)} on mutated stream at index {idx}")
 
 
+class TestByteFastPaths(unittest.TestCase):
+    def test_bytes_roundtrip(self):
+        data = b"Hello Yukti and Pingala 12345!"
+        encoded_bits = core.encode_bytes(data, 8)
+        decoded_bytes = core.decode_bytes(encoded_bits)
+        self.assertEqual(decoded_bytes, data)
+
+    def test_bytes_empty(self):
+        self.assertEqual(core.decode_bytes(core.encode_bytes(b"", 8)), b"")
+
+    def test_bytes_various_block_sizes(self):
+        data = b"\x00\x00\xff\xaa\x55\x00\x11"
+        for block in [1, 4, 8, 16, 32, 64]:
+            enc = core.encode_bytes(data, block)
+            dec = core.decode_bytes(enc)
+            self.assertEqual(dec, data, f"Failed roundtrip for block {block}")
+
+
 if __name__ == "__main__":
     unittest.main()
+
