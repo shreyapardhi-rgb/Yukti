@@ -513,6 +513,40 @@ def index():
     return send_from_directory(FRONT, "index.html")
 
 
+@app.get("/patterns")
+@app.get("/patterns.html")
+def patterns_page():
+    return send_from_directory(FRONT, "patterns.html")
+
+
+@app.get("/codec")
+@app.get("/codec.html")
+def codec_page():
+    return send_from_directory(FRONT, "codec.html")
+
+
+@app.get("/benchmark")
+@app.get("/benchmark.html")
+def benchmark_page():
+    return send_from_directory(FRONT, "benchmark.html")
+
+
+@app.get("/verify")
+@app.get("/verify.html")
+def verify_page():
+    return send_from_directory(FRONT, "verify.html")
+
+
+@app.get("/css/<path:filename>")
+def serve_css(filename):
+    return send_from_directory(os.path.join(FRONT, "css"), filename)
+
+
+@app.get("/js/<path:filename>")
+def serve_js(filename):
+    return send_from_directory(os.path.join(FRONT, "js"), filename)
+
+
 if __name__ == "__main__":
     host = os.environ.get("HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", "5000"))

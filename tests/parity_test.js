@@ -5,25 +5,27 @@
 const fs = require("fs");
 const path = require("path");
 
-// Extract the core code block between // ==CORE== and // ==/CORE== from frontend/index.html
-const htmlPath = path.join(__dirname, "..", "frontend", "index.html");
-const html = fs.readFileSync(htmlPath, "utf-8");
+// Load JS core module (either from frontend/js/core.js or extracted from index.html)
+const jsCorePath = path.join(__dirname, "..", "frontend", "js", "core.js");
+let jsCodec;
 
-const coreMatch = html.match(/\/\/ ==CORE==([\s\S]*?)\/\/ ==\/CORE==/);
-if (!coreMatch) {
-  console.error("FATAL: Could not locate // ==CORE== in frontend/index.html");
-  process.exit(1);
+if (fs.existsSync(jsCorePath)) {
+  jsCodec = require(jsCorePath);
+} else {
+  const htmlPath = path.join(__dirname, "..", "frontend", "index.html");
+  const html = fs.readFileSync(htmlPath, "utf-8");
+  const coreMatch = html.match(/\/\/ ==CORE==([\s\S]*?)\/\/ ==\/CORE==/);
+  if (!coreMatch) {
+    console.error("FATAL: Could not locate // ==CORE== in frontend/index.html or frontend/js/core.js");
+    process.exit(1);
+  }
+  const fn = new Function(
+    coreMatch[1] + `
+    return { C, bw, kWidth, rankWidth, pad, prastara, meruRows, matraVritta, textToBits, bitsToText, rankBlock, unrankBlock, encode, decode, mulberry32, makePreset };
+  `
+  );
+  jsCodec = fn();
 }
-
-// Evaluate JS core in isolated context
-const coreCode = coreMatch[1];
-const jsScope = {};
-const fn = new Function(
-  coreCode + `
-  return { C, bw, kWidth, rankWidth, pad, prastara, meruRows, matraVritta, textToBits, bitsToText, rankBlock, unrankBlock, encode, decode, mulberry32, makePreset };
-`
-);
-const jsCodec = fn();
 
 // 1. Verify Golden Vectors
 const goldenPath = path.join(__dirname, "golden.json");
