@@ -1,12 +1,14 @@
 # Yukti (युक्ति)
 
-> **Turning Acharya Pingala's Combinatorics into a Digital Encoding System**  
+> **Turning Acharya Pingala's Combinatorics into a Safe, Fast, and Hardened Digital Bitstream Codec**  
 > *Problem Category: CSE-03 (Intermediate) &bull; Indian Knowledge Systems &bull; Chhandas-Shastra*
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://python.org)
-[![Flask](https://img.shields.io/badge/Backend-Flask-green?logo=flask)](https://flask.palletsprojects.com/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-28%2F28%20Passing-brightgreen)](#correctness--test-suite)
-[![Theme](https://img.shields.io/badge/UI-Light%20%2F%20Dark%20Adaptive-gold)](#user-interface--features)
+[![Flask](https://img.shields.io/badge/Backend-Flask%203.0%2B-green?logo=flask)](https://flask.palletsprojects.com/)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-82%20Passing-brightgreen)](#-correctness--test-suite)
+[![Parity](https://img.shields.io/badge/Node.js%20Parity-1000%2F1000%20Verified-blueviolet)](#-cross-language-parity-verification)
+[![CI](https://img.shields.io/badge/CI-GitHub%20Actions-blue?logo=githubactions)](#-ci--github-actions)
+[![Container](https://img.shields.io/badge/Container-.meru%20v2%20CRC32-gold)](#-versioned-container-format-meru-v2)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
 
 ---
@@ -20,7 +22,7 @@ The $(k, \text{rank})$ block codec implemented in **Yukti** is **this team's own
 - **Nashta** (unranking: index $\to$ pattern)
 - **Matra-vritta** (meter partitions constrained by total syllable weight $\to$ Fibonacci numbers)
 
-> **Important Disclaimer:** This codec is **not** an ancient Indian compression algorithm, and this repository makes no claim that Pingala invented digital file compression. It is a scientifically rigorous demonstration of how Pingala's combinatorial concepts translate into modern digital bitstream serialization and combinatorial number systems (combinadics).
+> **Important Disclaimer:** This codec is **not** an ancient Indian compression algorithm, and this repository makes no claim that Pingala invented digital file compression. It is a scientifically rigorous demonstration of how Pingala's combinatorial concepts translate into modern digital bitstream serialization and combinatorial number systems (combinadics). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full proofs and entropy bounds.
 
 ---
 
@@ -30,200 +32,388 @@ In Sanskrit metrics, **Laghu (L)** denotes a short syllable (1 Matra) and **Guru
 
 | Classical Sanskrit Term | Mathematical Definition | Digital Computer Science Equivalent | Implementation |
 | :--- | :--- | :--- | :--- |
-| **Laghu (L) / Guru (G)** | Short (1 matra) / Long (2 matras) | Binary digits `0` and `1` | `core.py` |
+| **Laghu (L) / Guru (G)** | Short (1 matra) / Long (2 matras) | Binary digits `0` and `1` | [`core.py`](backend/core.py) |
 | **Prastara** (प्रस्तार) | Ordered expansion of all $2^n$ permutations | Complete truth table / $n$-bit state space | [`prastara(n)`](backend/core.py) |
-| **Meru Prastara** (मेरु प्रस्तार) | "Staircase of Mount Meru" (Pascal's Triangle) | Binomial coefficients $C(n, k)$ grouping patterns with $k$ ones | [`meru_rows(rows)`](backend/core.py) |
+| **Meru Prastara** (मेरु प्रस्तार) | "Staircase of Mount Meru" (Pascal's Triangle) | Precomputed binomial matrix $C(n, k)$ | [`meru_rows(rows)`](backend/core.py) |
 | **Uddishta** (उद्दिष्ट) | Pattern $\to$ Index (Ranking) | **Encoding**: Combinadic rank inside the $k$-group | [`rank_block(block)`](backend/core.py) |
 | **Nashta** (नष्ट) | Index $\to$ Pattern (Unranking) | **Decoding**: Reconstructing block from $(n, k, \text{rank})$ | [`unrank_block(n, k, r)`](backend/core.py) |
 | **Matra-vritta** (मात्रावृत्त) | Meters with fixed total weight ($L=1, G=2$) | Sum-constrained partitions $\to$ Fibonacci counts | [`matra_vritta(m)`](backend/core.py) |
-| **Sankhya** (संख्या) | Total count of all possible patterns | Cardinality of state space ($2^n$) | UI Tab 1 |
+| **Sankhya** (संख्या) | Total count of all possible patterns | Cardinality of state space ($2^n$) | [`/api/info`](backend/app.py) |
 
 ---
 
-## ⚙️ The Encoding Scheme (Exact Bit Layout)
+## 📦 Versioned Container Format (.meru v2)
 
-Yukti breaks input bitstreams into blocks of size $n$ ($1 \le n \le 64$) and encodes each block by its guru count $k$ and its combinadic rank within that $k$-group:
+To ensure cryptographic-grade verification and protect against silent bitstream corruption, Yukti introduces the **.meru v2 container format**. The container prepends a 19-byte fixed verification header ahead of the packed combinadic payload.
+
+### Binary Header Layout (19 Bytes)
 
 ```text
-|---------------------- 40-bit Header ----------------------|------------------- Block Payload -------------------|
-|   Input Length (32 bits)   |   Block Size n (8 bits)   | Block 1 (k, rank) | Block 2 (k, rank) | ...             |
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                       Magic "MERU" (4B)                       |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  Version (1B) |   Flags (1B)  |     Original Bit Length (4B)  |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  ... (cont.)  | BlockSize(1B) |     Payload Bit Length (4B)   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  ... (cont.)  |                 CRC-32 (4B)                   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  ... (cont.)  |          Packed Bitstream Payload ...         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
-### 1. Header (40 bits)
-- **Length (32 bits)**: Exact bit length of the unpadded input (enables 100% lossless trimming of padding bits).
-- **Block size $n$ (8 bits)**: $1 \le n \le 64$ (default $n=8$).
-
-### 2. Per-Block Payload
-For each $n$-bit block:
-- **$k$ field**: Bit width $= \lceil \log_2(n + 1) \rceil$ (e.g., 4 bits for $n=8$).
-- **$\text{rank}$ field**: Bit width $= \lceil \log_2(C(n, k)) \rceil$ bits (uses 0 bits when $C(n, k) = 1$, i.e., all zeros or all ones).
-- **Total bitstream formula**:
-  $$\text{Total Bits} = 40 + \sum_{\text{blocks}} \left( \lceil \log_2(n + 1) \rceil + \lceil \log_2(C(n, k)) \rceil \right)$$
-
----
-
-## 🔬 Scientific Comparison: Compression vs. Expansion
-
-Information theory (Shannon entropy) dictates that no lossless algorithm can compress every possible input string. Yukti provides an honest, measured analysis:
-
-| Data Type / Distribution | Characteristic | Yukti Result | Why? |
+| Offset | Field Name | Type / Size | Value / Description |
 | :--- | :--- | :--- | :--- |
-| **Sparse (e.g. 5% ones)** | Skewed ($p \approx 0.05$) | **COMPRESSES** | Most blocks have $k=0$ or $k=1$. $C(8, 0)=1$ (0 rank bits) and $C(8, 1)=8$ (3 rank bits). Total per block is much less than 8 bits. |
-| **Dense (e.g. 95% ones)** | Skewed ($p \approx 0.95$) | **COMPRESSES** | Symmetric to sparse data; very few rank bits required. |
-| **All Zeros / All Ones** | Extreme skew ($p=0$ or $1$) | **COMPRESSES** | Only needs 4 bits per 8-bit block ($50\%$ compression). |
-| **Standard Text (`"saket"`)** | Balanced / Mixed ($k \approx 4$) | **ONLY ENCODES (Expands)** | For $n=8, k=4$, $C(8, 4)=70$, requiring 7 rank bits $+ 4$ $k$-bits $= 11$ bits/block, plus 40-bit header. |
-| **Random Data (50% ones)** | Maximum Entropy ($H(p) = 1.0$) | **ONLY ENCODES (Expands)** | Shannon limit prevents compression of incompressible white noise. |
+| `0..3` | **Magic** | `char[4]` (4 bytes) | Fixed ASCII `b"MERU"` (`0x4D 0x45 0x52 0x55`) |
+| `4` | **Version** | `uint8` (1 byte) | Container version (`0x02`) |
+| `5` | **Flags** | `uint8` (1 byte) | Reserved feature flags (`0x00`) |
+| `6..9` | **Original Bit Length** | `uint32` Big-Endian (4B) | Exact unpadded input bit count |
+| `10` | **Block Size $n$** | `uint8` (1 byte) | Block size used for encoding ($1 \le n \le 64$) |
+| `11..14`| **Payload Bit Length** | `uint32` Big-Endian (4B) | Total bit count of the combinadic stream |
+| `15..18`| **Original CRC-32** | `uint32` Big-Endian (4B) | IEEE 802.3 standard CRC32 of original data |
+| `19..` | **Payload** | `byte[]` (variable) | Byte-packed $(k, \text{rank})$ bitstream |
+
+### Backward Compatibility & Auto-Detection
+The decoder automatically differentiates between legacy v1 raw bitstreams and v2 containers:
+- If stream starts with `b"MERU"`: decodes as v2 container and verifies CRC-32.
+- Otherwise: parses as legacy 40-bit raw stream (`32-bit length + 8-bit block size`). Existing `.meru` files and endpoints work without changes.
 
 ---
 
-## 📁 Repository Structure
+## 🔒 Security, Guardrails & System Limits
 
-```text
-Yukti/
-├── backend/
-│   ├── app.py                     # Flask REST API + static file server
-│   ├── bench.py                   # Benchmarking against raw bits and zlib (Deflate level 9)
-│   ├── core.py                    # Core codec, Pingala combinadics, PRNG presets
-│   ├── requirements.txt           # Python dependencies (Flask >= 3.0)
-│   └── test_meru.py               # 28 automated unit tests (codec, stream, API)
-├── frontend/
-│   └── index.html                 # Single-file modern UI with Light/Dark themes and Web Audio API
-├── MeruCode_Frontend_Backend.md   # Detailed mathematical & architectural documentation (1,442 lines)
-└── README.md                      # Project overview and quickstart guide
-```
+All inputs are validated through central bounds checkers before memory allocation or execution.
 
----
-
-## 🚀 Quickstart & How to Run Locally
-
-### Prerequisites
-- Python 3.10 or higher
-- Modern web browser (Chrome, Edge, Firefox, Safari)
-
-### 1. Install Dependencies
-```powershell
-cd backend
-pip install -r requirements.txt
-```
-
-### 2. Run the Local Server
-```powershell
-python app.py
-```
-Open **[http://127.0.0.1:5000/](http://127.0.0.1:5000/)** in your web browser.
-
-> **Offline Mode Note:** The frontend ([`frontend/index.html`](frontend/index.html)) is completely self-contained. You can double-click and open it directly in any browser without Python running; the full encoding, decoding, and audio synthesizer run client-side using built-in JavaScript and Web Audio API!
+| Parameter / Resource | Hard Limit | Enforcement Mechanism | Failure Response |
+| :--- | :--- | :--- | :--- |
+| **Max Request Body** | 1 MB ($1,048,576$ bytes) | `MAX_CONTENT_LENGTH` in Flask | `HTTP 413 Payload Too Large` |
+| **Max Input Bits** | 200,000 bits | `_input_bits` validator | `HTTP 400 INPUT_TOO_LONG` |
+| **Max Claimed Decode Bits** | 500,000 bits | Pre-allocation header guard | `HTTP 400 CLAIMED_LENGTH_TOO_LARGE` |
+| **Block Size $n$** | $1 \le n \le 64$ | `_block` validator & `_check_bits` | `HTTP 400 BAD_BLOCK_SIZE` |
+| **Max Matra $M$** | $1 \le M \le 16$ | `matra_vritta` bound | `HTTP 400 BAD_MATRA` |
+| **Max Prastara $n$** | $0 \le n \le 16$ | `prastara` bound | `HTTP 400 VALUE_OUT_OF_RANGE` |
+| **Rate Limit (Expensive)** | 120 req / min per IP | In-memory sliding window (`/api/compare`, `/api/sweep`, `/api/analyze`) | `HTTP 429 RATE_LIMIT_EXCEEDED` (`Retry-After: 60`) |
+| **CORS Origins** | Configurable | `ALLOWED_ORIGINS` env var (default: localhost & same origin) | Restricted headers |
 
 ---
 
-## 🎨 User Interface & Features
+## ⚠️ Structured Machine-Readable Error Codes
 
-- **Light & Dark Themes**: High-contrast, Vedic parchment theme enabled by default, with an instant toggle for dark mode.
-- **Tab 1 — Pattern Generator**:
-  - Interactive *Prastara* list for $n \le 8$.
-  - Interactive *Meru Prastara* pyramid with real-time $k$-group highlighting.
-  - *Matra-vritta* partition generator displaying Fibonacci sequence growth.
-  - **Acoustic Chhandas Engine**: Synthesizes classical rhythmic prosody using Web Audio API oscillators (Laghu = 1 beat, Guru = 2 beats).
-  - Classical Vedic meter presets (*Gayatri*, *Anushtubh*, *Trishtubh*, *Jagati*).
-- **Tab 2 — Encode / Decode & Files**:
-  - Real-time text (UTF-8) and binary bitstream encoding.
-  - Step-by-step block trace table showing $(k, \text{rank})$ and bit allocation.
-  - Drag-and-drop file encoder and `.meru` container archive export.
-- **Tab 3 — Scientific Comparison**:
-  - Benchmarks execution time (ms) and storage against Raw bits and `zlib` (Deflate level 9).
-  - Real-time HTML5 Canvas plotting data density against the Shannon Entropy curve $H(p)$.
-  - Automatic optimal block size finder ($n \in \{2, 4, 8, 12, 16, 24, 32\}$).
-- **Tab 4 — In-Browser Correctness Tests**:
-  - 14 client-side unit tests verifying roundtrips, edge cases, and golden test vectors.
+All errors return JSON in the standardized schema:
+```json
+{
+  "error": {
+    "code": "BAD_BLOCK_SIZE",
+    "message": "block size must be between 1 and 64",
+    "field": "block",
+    "position": 32
+  }
+}
+```
+
+| Error Code | HTTP Status | Description |
+| :--- | :--- | :--- |
+| `BAD_BLOCK_SIZE` | 400 | Block size outside $[1, 64]$ |
+| `CLAIMED_LENGTH_TOO_LARGE` | 400 | Header claimed length exceeds `MAX_OUTPUT_BITS` (fails before allocating) |
+| `STREAM_TRUNCATED` | 400 | Stream is shorter than minimum required for claimed blocks |
+| `HEADER_TOO_SHORT` | 400 | Stream is shorter than 40-bit header |
+| `K_EXCEEDS_BLOCK` | 400 | Decoded $k > n$ for a block |
+| `RANK_OUT_OF_RANGE` | 400 | Decoded rank $r \ge \binom{n}{k}$ |
+| `TRAILING_BITS` | 400 | Stream contains unparsed trailing garbage after all blocks |
+| `CHECKSUM_MISMATCH` | 400 | Decoded data CRC32 does not match container header |
+| `CONTAINER_TOO_SHORT` | 400 | Container data shorter than 19-byte header |
+| `UNSUPPORTED_VERSION` | 400 | Container version not supported |
+| `INVALID_BITS` | 400 | String contains characters other than `'0'` and `'1'` |
+| `INVALID_TYPE` | 400 | Invalid JSON type (e.g. boolean passed as integer) |
+| `MISSING_PARAMETER` | 400 | Required query or JSON parameter omitted |
+| `NOT_FOUND` | 404 | Endpoint does not exist |
+| `METHOD_NOT_ALLOWED` | 405 | HTTP method not permitted on endpoint |
+| `PAYLOAD_TOO_LARGE` | 413 | Request body exceeds 1 MB limit |
+| `UNSUPPORTED_MEDIA_TYPE` | 415 | Content-Type is not `application/json` |
+| `RATE_LIMIT_EXCEEDED` | 429 | IP request rate exceeded for expensive endpoint |
+| `INTERNAL_ERROR` | 500 | Unhandled generic error (no stack trace leaked) |
+
+---
+
+## 🔬 Benchmark Results
+
+Full benchmarks comparing Yukti against raw stream, DEFLATE (`zlib -9`), Gzip, Bzip2, LZMA, and Run-Length Encoding (RLE). Reproduced from [`docs/benchmarks.md`](docs/benchmarks.md):
+
+| Scale | Distribution | Raw (bits) | Yukti (bits) | Ratio | zlib (bits) | RLE (bits) | Best Block | Verdict |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **1 Kbit** | Sparse (5% ones) | 1,024 | 550 | **53.7%** | 656 | 1,632 | Block 64 | **COMPRESSES** |
+| **1 Kbit** | Dense (95% ones) | 1,024 | 553 | **54.0%** | 632 | 1,552 | Block 64 | **COMPRESSES** |
+| **1 Kbit** | Random (50% ones) | 1,024 | 1,209 | **118.1%** | 1,112 | 8,224 | Block 64 | **EXPANDS** |
+| **1 Kbit** | All Zeros | 1,024 | 360 | **35.2%** | 96 | 16 | Block 64 | **COMPRESSES** |
+| **64 Kbit** | Sparse (5% ones) | 65,536 | 32,416 | **49.5%** | 24,296 | 98,512 | Block 64 | **COMPRESSES** |
+| **64 Kbit** | Dense (95% ones) | 65,536 | 32,601 | **49.8%** | 24,768 | 100,112 | Block 64 | **COMPRESSES** |
+| **64 Kbit** | Random (50% ones) | 65,536 | 75,236 | **114.8%** | 65,624 | 526,736 | Block 64 | **EXPANDS** |
+| **64 Kbit** | All Zeros | 65,536 | 20,520 | **31.3%** | 248 | 16 | Block 64 | **COMPRESSES** |
+
+> **Scientific Finding:** MeruCode compresses low-entropy distributions (sparse, dense, run-heavy) down to ~35%–53% of original size. On random noise ($p=0.5$), it provably expands by ~15% due to header and combinadic representation bounds.
+
+---
+
+## 🔌 Complete REST API Reference
+
+Interactive HTML docs available at `GET /api/docs`. Machine-readable schema at `GET /api/info`.
+
+### Core Codec Endpoints
+
+#### `POST /api/encode`
+Encodes a bitstring or UTF-8 text into a MeruCode stream.
+- **Request:**
+  ```json
+  {"text": "saket", "block": 8}
+  ```
+- **Response:**
+  ```json
+  {
+    "mode": "text",
+    "input_bits": 40,
+    "block": 8,
+    "header": "0000000000000000000000000010100000001000",
+    "blocks": [
+      {"block": "01110011", "k": 5, "rank": 33, "bits_used": 11}
+    ],
+    "encoded": "000000000000000000000000001010000000100001010100001...",
+    "encoded_bits": 92
+  }
+  ```
+
+#### `POST /api/decode`
+Decodes an encoded bitstream back into raw bits or text.
+- **Request:**
+  ```json
+  {"encoded": "0000000000000000000000000010100000001000...", "as_text": true}
+  ```
+- **Response:**
+  ```json
+  {
+    "bits": "0111001101100001011010110110010101110100",
+    "bit_length": 40,
+    "text": "saket"
+  }
+  ```
+
+#### `POST /api/pack`
+Creates a `.meru v2` container with CRC-32 integrity validation.
+- **Request:**
+  ```json
+  {"text": "saket", "block": 8}
+  ```
+- **Response:**
+  ```json
+  {
+    "version": 2,
+    "container_base64": "TUVSVQIAAAAoCAAAAFyK+Nig...",
+    "container_bytes": 31,
+    "original_bits": 40,
+    "block": 8,
+    "crc32": "0x8a3f1290"
+  }
+  ```
+
+#### `POST /api/unpack`
+Decodes a `.meru v2` container, verifying CRC-32 integrity.
+- **Request:**
+  ```json
+  {"container_base64": "TUVSVQIAAAAoCAAAAFyK+Nig...", "as_text": true}
+  ```
+- **Response:**
+  ```json
+  {
+    "bits": "0111001101100001011010110110010101110100",
+    "bit_length": 40,
+    "version": 2,
+    "crc_verified": true,
+    "crc32": "0x8a3f1290",
+    "text": "saket"
+  }
+  ```
+
+### Analysis & Interactive UI Endpoints
+
+#### `POST /api/trace`
+Step-by-step block ranking walk with active binomial terms.
+- **Request:**
+  ```json
+  {"bits": "10110", "block": 5}
+  ```
+- **Response:**
+  ```json
+  {
+    "total_bits": 5,
+    "block_size": 5,
+    "blocks": [{
+      "block": "10110",
+      "k": 3,
+      "rank": 7,
+      "binomial_terms": [
+        {"pos": 0, "bit": "1", "n": 4, "left": 3, "value": 4, "running_sum": 4},
+        {"pos": 1, "bit": "0", "n": 3, "left": 2, "value": 0, "running_sum": 4},
+        {"pos": 2, "bit": "1", "n": 2, "left": 2, "value": 1, "running_sum": 5},
+        {"pos": 3, "bit": "1", "n": 1, "left": 1, "value": 1, "running_sum": 6},
+        {"pos": 4, "bit": "0", "n": 0, "left": 0, "value": 0, "running_sum": 7}
+      ],
+      "running_sum": 7
+    }]
+  }
+  ```
+
+#### `POST /api/sweep`
+Generates block size vs. compression ratio grid for heatmaps.
+- **Request:**
+  ```json
+  {"density": 0.05, "length": 1024, "block_min": 4, "block_max": 64, "step": 8}
+  ```
+- **Response:**
+  ```json
+  {
+    "density": 0.05,
+    "length": 1024,
+    "points": [
+      {"block": 4, "encoded_bits": 768, "ratio": 0.75, "compresses": true},
+      {"block": 12, "encoded_bits": 612, "ratio": 0.5977, "compresses": true}
+    ]
+  }
+  ```
+
+#### `POST /api/analyze`
+Computes empirical Shannon entropy $H(p)$ and theoretical minimum size.
+- **Request:**
+  ```json
+  {"bits": "00000000000000000000000010000000", "block": 8}
+  ```
+- **Response:**
+  ```json
+  {
+    "n_bits": 32,
+    "ones": 1,
+    "p1": 0.03125,
+    "shannon_entropy_per_bit": 0.20194,
+    "theoretical_min_bits": 7,
+    "meru_bits": 58,
+    "meru_block": 8,
+    "meru_gap_bits": 51,
+    "explanation": "Shannon entropy H(p) = 0.2019 bits/symbol..."
+  }
+  ```
+
+#### `POST /api/corrupt`
+Simulates bit-flip corruption and returns structured error or diff.
+- **Request:**
+  ```json
+  {"encoded": "0000000000000000000000000010100000001000...", "position": 10}
+  ```
+- **Response (on error detection):**
+  ```json
+  {
+    "flipped_position": 10,
+    "original_bit": "0",
+    "flipped_bit": "1",
+    "success": false,
+    "error": {
+      "code": "CLAIMED_LENGTH_TOO_LARGE",
+      "message": "claimed output bit length exceeds maximum limit",
+      "position": 0
+    }
+  }
+  ```
+
+#### `POST /api/compare`
+Benchmarks input against zlib, gzip, bzip2, lzma, and RLE.
+- **Request:**
+  ```json
+  {"text": "saket", "block": 8}
+  ```
+
+### Classical Pingala Combinatorics Endpoints
+
+- `GET /api/prastara?n=4`: Returns all $2^n$ binary syllable permutations.
+- `GET /api/meru?rows=9`: Returns Pascal triangle binomial rows.
+- `GET /api/matra?m=5`: Returns meter combinations for total weight $m$ (Fibonacci).
+- `GET /api/nashta?n=4&index=5`: Unranks index $\to$ pattern.
+- `GET /api/uddishta?pattern=0101`: Ranks pattern $\to$ index.
+- `GET /api/presets`: Returns available PRNG preset names and labels.
+- `POST /api/generate`: Generates deterministic PRNG bitstreams (`preset`, `length`, `seed`).
+- `GET /api/health`: Uptime, version, and server health.
+- `GET /api/info`: Machine-readable endpoint catalog, limits, and header specifications.
+- `GET /api/docs`: Interactive HTML documentation.
 
 ---
 
 ## 🧪 Correctness & Test Suite
 
-The test suite covers:
-- Pingala combinatorial counts ($2^n$) and Fibonacci Matra-vritta verification
-- All 256 8-bit blocks roundtrip validation
-- Saket golden vector verification ($40 \to 92$ bits)
-- Multilingual Unicode UTF-8 roundtrips (e.g., Sanskrit Devanagari `संस्कृत`, emojis `café 😀`)
-- Corrupt and truncated bitstream rejection
+The test suite contains **82 comprehensive unit, property, and parity tests**:
+- **Classical Metrics**: Prastara $2^n$ growth, Meru symmetry, Matra Fibonacci counts.
+- **Combinadics**: Invertibility of Uddishta/Nashta across all block sizes $1 \le n \le 64$.
+- **Exhaustive Block Testing**: All 8,190 patterns exhaustively verified for $n \in [1, 12]$, plus boundary testing for $n \in [13, 16]$.
+- **Hypothesis Property Tests**: Roundtrip on arbitrary bit strings, block sizes $1..64$, size formula exactness, and crash-proof decode safety.
+- **Fuzz Testing**: 700 iterations of random bitstream garbage, truncations, and bit-flips; asserts `decode()` always raises `MeruError` or succeeds, never hanging or leaking unbounded memory.
+- **Golden Vectors (`tests/golden.json`)**: Verifies saket, empty string, 1-bit, all zeros, all ones, Devanagari Sanskrit text, and 64-bit blocks.
+- **Cross-Language Parity (`tests/parity_test.js`)**: 1,000 random test vectors verified bit-for-bit between Python backend and vanilla JavaScript frontend.
+- **Mutation Sanity**: Off-by-one intentional mutation on `rank_block` verified to fail tests.
 
-Run the backend unit test suite:
+### Running Tests Locally
+
 ```powershell
+# 1. Install dependencies
+pip install -r requirements-dev.txt
+
+# 2. Run Python test suite
 cd backend
-python -m unittest test_meru.py
+python -m unittest test_meru.py -v
+
+# 3. Run Node.js cross-language parity test
+cd ..
+node tests/parity_test.js
+
+# 4. Run Ruff linting
+python -m ruff check .
+
+# 5. Run benchmarks
+cd backend
+python bench.py
 ```
-```text
-............................
-----------------------------------------------------------------------
-Ran 28 tests in 0.13s
 
-OK
+---
+
+## 🚀 Deployment & Operations
+
+### Local Execution
+```powershell
+pip install -r requirements.txt
+python backend/app.py
+```
+Open **[http://127.0.0.1:5000/](http://127.0.0.1:5000/)** in your browser.
+
+### Docker
+```bash
+docker build -t yukti .
+docker run -p 5000:5000 yukti
 ```
 
----
-
-## 🔌 REST API Reference
-
-| Endpoint | Method | Parameters / Body | Description |
-| :--- | :--- | :--- | :--- |
-| `/api/health` | `GET` | — | Server health check and header specification |
-| `/api/prastara` | `GET` | `?n=3` | Returns all $2^n$ binary syllable patterns |
-| `/api/meru` | `GET` | `?rows=9` | Returns Pascal's triangle binomial rows $C(r, k)$ |
-| `/api/matra` | `GET` | `?m=5` | Returns meters with $m$ total matras (Fibonacci) |
-| `/api/uddishta` | `GET` | `?pattern=101` | Computes index/rank from binary pattern |
-| `/api/nashta` | `GET` | `?n=3&index=5` | Computes pattern from syllable length and index |
-| `/api/presets` | `GET` | — | Returns available PRNG benchmark presets |
-| `/api/generate`| `POST`| `{"preset": "sparse", "length": 256}` | Generates deterministic synthetic bitstream |
-| `/api/encode` | `POST` | `{"text": "saket", "block": 8}` | Returns encoded stream and per-block $(k, \text{rank})$ |
-| `/api/decode` | `POST` | `{"encoded": "...", "as_text": true}` | Decodes bitstream back to text or raw bits |
-| `/api/compare`| `POST` | `{"bits": "...", "block": 8}` | Benchmarks vs raw bits and zlib |
+### Production Host (Render, Railway, Heroku)
+The project includes a `Procfile` (`web: python backend/app.py`) and reads `HOST`, `PORT`, and `ALLOWED_ORIGINS` from environment variables with safe defaults.
 
 ---
 
-## 🎮 Interactive Features Guide (90-Second Judge Experience)
+## 🛡️ What This Does and Does Not Guarantee
 
-Yukti transforms what used to be a static form-and-table app into a tactile, exploratory scientific demonstration:
+### Guarantees
+1. **100% Lossless Reconstruction**: For any bitstream encoded by Yukti, the decoder reconstructs the exact original bitstream without loss.
+2. **Accidental Corruption Detection**: The `.meru v2` container guarantees detection of unintentional bit flips, header truncations, and data transmission errors via CRC-32 verification.
+3. **Bounded Memory & Crash Safety**: Untrusted inputs can never trigger an uncaught exception, a 500 status code, or unbounded memory allocations. Claimed lengths are validated prior to allocation.
+4. **Deterministic Cross-Platform Parity**: The Python backend and JavaScript frontend produce bit-for-bit identical bitstreams for all inputs.
 
-1. **⚡ 90-Second Judge Tour (`Start Tour` in header)**:
-   - A guided 6-step walkthrough taking evaluators from Pingala's prosodic metrics to live combinadic block ranking, reverse unranking, density sweep against the Shannon limit, and a final plain-language results card.
-2. **🎭 Encoding Theatre (Signature Feature)**:
-   - Block-by-block visual animation lifting syllables into Laghu/Guru tiles, ticking Guru counts $k$, and walking through the Mount Meru staircase to highlight active binomial terms $C(n-1-i, \text{left})$ in real-time.
-   - Includes transport controls (Play, Pause, Step forward/back, scrubber, speed), live Bits-In vs Bits-Out ratio gauge, and reverse Nashta decoding playback.
-3. **🔺 Interactive Mount Meru Playground**:
-   - Hover any cell to observe Pascal's parent addition rule ($C(n,k) = C(n-1, k-1) + C(n-1, k)$).
-   - Toggle overlays for Fibonacci diagonals (Matra-vritta), row sums ($2^n$), and the symmetry axis.
-   - Click any cell to inspect all $C(n, k)$ patterns in rank order and perform live Uddishta/Nashta unranking.
-4. **🧪 Bitstream Corruption Lab**:
-   - Flip any single bit in the 40-bit header or block payloads to observe mathematical syntax errors or corrupted decodes in real time.
-   - Highlights how combinadics inherently detect boundary violations without dedicated parity bits.
-5. **📊 Density Playground & Block-Size Heatmap**:
-   - Live Guru density slider $p \in [0, 1]$ generates dynamic synthetic streams and plots an animated tracer dot along Shannon's theoretical entropy curve $H(p)$.
-   - Interactive 2D heatmap ($p \times n$) displays compression ratios across block sizes $n \in [4..64]$. Clicking any cell instantly configures the codec.
-6. **🎵 Acoustic Pattern Composer**:
-   - Tappable Laghu and Guru pads (plus keyboard keys <kbd>L</kbd> and <kbd>G</kbd>) with real-time syllable counts, matras, Uddishta index, and synchronized Web Audio playhead animations.
-   - "Chant Encoded Stream" mode sonifies the compressed bitstream.
-7. **📸 Export & URL State Sync**:
-   - URL hash state (`#tab=...&input=...&blk=...&p=...`) allows deep-linking and state preservation.
-   - Export high-resolution PNG snapshots of the Theatre frame or test verification suite for report submission.
-
----
-
-## 📝 CHANGELOG
-
-### Version 2.0.0 — Hackathon Interactive Overhaul
-- **Project Rebranding**: Renamed from MeruCode to **Yukti** across backend, frontend, API, and documentation.
-- **Design System & Theme**: Warm ivory / terracotta / Vedic gold color palette with dual-mode CSS tokens and persistent Light/Dark theme toggle.
-- **Encoding Theatre**: Introduced block carousel, animated syllable tiles, Guru counter, combinadic formula display, and mini-Meru walk synchronization.
-- **Live Mode**: Integrated 150ms debounced auto-encoding with real-time compression verdict chip and entropy explanation.
-- **Corruption Lab**: Added interactive bit flipper grid with combinadic boundary error detection and byte diff viewer.
-- **Density Playground**: Added Shannon entropy canvas with live tracer dot and interactive block-size sweep heatmap.
-- **Pattern Composer**: Built Web Audio prosodic synthesizer with synchronized playhead animation, Vedic presets, and keyboard controls.
-- **Judge Tour**: Built 90-second automated interactive tour dock and final evaluation modal.
-- **Verification**: Verified 100% pass rate on all 28 Python unit tests and 14 in-browser automated tests.
+### Non-Guarantees
+1. **Not a Cryptographic System**: CRC-32 does NOT provide cryptographic authentication or tamper resistance against malicious adversaries who can recompute the CRC.
+2. **Universal Compression is Mathematically Impossible**: In accordance with Shannon's Source Coding Theorem, random noise and balanced ASCII text will expand. Compression is achieved only on low-entropy and skewed distributions.
 
 ---
 
 ## 📄 License
-
-This project is open-source under the [MIT License](LICENSE).
-
+MIT License. Open-source for academic and competition evaluation.
