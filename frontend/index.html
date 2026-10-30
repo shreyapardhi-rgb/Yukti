@@ -160,18 +160,7 @@ details{background:var(--card);border:1px solid var(--line);border-radius:12px;p
 summary{cursor:pointer;font-weight:600}
 details p{margin:8px 0 0;color:var(--mute)}
 
-/* Login Modal */
-.login{border:0;background:var(--acc);color:#fff;padding:8px 18px;border-radius:999px;font:600 14px system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 12px rgba(179,84,30,.3);transition:transform .15s}
-.login:hover{transform:translateY(-2px)}
 button.btn{border:0}
-.modal{position:fixed;inset:0;z-index:500;display:grid;place-items:center;padding:20px;background:rgba(43,33,24,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-.modal[hidden]{display:none}
-.box{position:relative;width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 24px;box-shadow:0 24px 60px rgba(0,0,0,.25);animation:rise .35s ease both}
-.box h3{margin:0 0 14px;font:700 24px Georgia,serif}
-.box label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
-.box input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--bg);color:var(--ink)}
-.x{position:absolute;top:8px;right:12px;border:0;background:transparent;font-size:28px;cursor:pointer;color:var(--mute);line-height:1}
-.lnote{font-size:12.5px;color:var(--mute);margin:12px 0 0}.lnote.err{color:var(--bad)}.lnote.ok{color:var(--ok)}
 
 /* 3D Stage Info Overlay */
 .info{position:absolute;top:8px;left:8px;right:8px;margin:auto;max-width:390px;background:rgba(255,253,249,.95);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;color:var(--mute);text-align:center;pointer-events:none;z-index:2;box-shadow:0 4px 12px rgba(0,0,0,0.06)}
@@ -213,7 +202,6 @@ footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--mute);fo
   .nav-modules-row a.p{background:var(--acc);color:#fff;border-color:var(--acc)}
   .nav-sections-row{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-bottom:6px}
   .nav-sections-row a{margin:0;padding:6px 10px;background:var(--bg);border-radius:6px;font-size:13px}
-  .nav-links .login{width:100%;margin:8px 0 0;text-align:center}
 
   .hero .wrap{grid-template-columns:1fr;min-height:auto;padding-bottom:20px}
   #stage{height:340px}
@@ -279,7 +267,6 @@ footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--mute);fo
         <a href="#results">Results</a>
         <a href="#tech">Tech</a>
       </div>
-      <button class="login" id="loginBtn">Login</button>
     </div>
   </nav>
 
@@ -289,7 +276,7 @@ footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--mute);fo
     <p class="lead"><b style="color:var(--ink)">Yukti</b> (युक्ति) means “a clever method”. Every block of bits is described by two numbers: how many gurus it holds (<code>k</code>) and which pattern it is inside that group (<code>rank</code>). The Meru Prastara, the triangle you see here, supplies the counts.</p>
     <div class="hero-btn-group">
       <a class="btn p" href="codec.html">Open Codec Theatre</a>
-      <button class="btn s" onclick="openLogin()">Login to Yukti</button>
+      <a class="btn s" href="verify.html">Open Test Lab</a>
       <a class="btn s" href="#lab">Play with a block</a>
     </div>
     <div class="badge">The (k, rank) codec is our team’s own implementation, inspired by Pingala. It is not a historical compression system.</div>
@@ -460,16 +447,6 @@ footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--mute);fo
 <section class="cta"><div class="wrap"><h2>Encode. Decode. Stay honest.</h2><p>Yukti shrinks skewed data and says plainly when it cannot. That honesty is part of the design.</p><a class="btn" href="codec.html">Open Codec Theatre</a><a class="btn" href="#lab">Back to the block lab</a><a class="btn" href="#play">Open the playground</a></div></section>
 <footer><div class="wrap">Yukti · CSE-03 · Prastara, Meru Prastara, Uddishta and Nashta as a team implementation. Built with a Python backend, a web frontend and 82 correctness tests.</div></footer>
 
-<div id="lm" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="lt">
-  <div class="box">
-    <button class="x" onclick="closeLogin()" aria-label="Close">×</button>
-    <h3 id="lt">Login to Yukti</h3>
-    <label for="le">Email</label><input id="le" type="email" autocomplete="username" placeholder="you@example.com">
-    <label for="lp">Password</label><input id="lp" type="password" autocomplete="current-password" placeholder="At least 6 characters">
-    <button class="btn p" onclick="doLogin()" style="width:100%;margin:16px 0 0;text-align:center">Login</button>
-    <p id="lmsg" class="lnote">Demo screen: no account is checked yet. It is ready to be connected to the Flask backend.</p>
-  </div>
-</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ---------- mobile navigation toggle ----------
@@ -566,18 +543,6 @@ if("IntersectionObserver" in window){
   document.querySelectorAll("section.blk,.stat").forEach(function(el){el.classList.add("rv");io.observe(el);});
 }
 
-// ---------- login (demo screen, nothing is sent anywhere) ----------
-var user=null;
-function setLoginBtn(){document.getElementById("loginBtn").textContent=user?"Logout ("+user+")":"Login";}
-function openLogin(){if(user){user=null;setLoginBtn();return;}document.getElementById("lm").hidden=false;document.getElementById("le").focus();}
-function closeLogin(){document.getElementById("lm").hidden=true;}
-function doLogin(){var e=document.getElementById("le").value.trim(),p=document.getElementById("lp").value,n=document.getElementById("lmsg");
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){n.className="lnote err";n.textContent="Enter a valid email address.";return;}
-  if(p.length<6){n.className="lnote err";n.textContent="The password needs at least 6 characters.";return;}
-  user=e.split("@")[0];n.className="lnote ok";n.textContent="Logged in as "+user+" (demo only).";setLoginBtn();document.getElementById("lp").value="";setTimeout(closeLogin,1100);}
-document.getElementById("loginBtn").onclick=openLogin;
-document.getElementById("lm").addEventListener("click",function(e){if(e.target===this)closeLogin();});
-document.addEventListener("keydown",function(e){if(e.key==="Escape")closeLogin();if(e.key==="Enter"&&!document.getElementById("lm").hidden)doLogin();});
 
 // ---------- mandala petals ----------
 (function(){var g=document.getElementById("pt"),i,e;for(i=0;i<12;i++){e=document.createElementNS("http://www.w3.org/2000/svg","ellipse");
