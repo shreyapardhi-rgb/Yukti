@@ -95,6 +95,43 @@ class TestStreamCodec(unittest.TestCase):
         self.assertEqual(decode(encode("10101", 8)), "10101")
 
 
+class TestVersionedContainer(unittest.TestCase):
+    def test_pack_unpack_roundtrip(self):
+        bits = core.text_to_bits("Yukti Pingala Codec v2")
+        container = core.pack_container(bits, block=12)
+        self.assertTrue(container.startswith(core.CONTAINER_MAGIC))
+        self.assertEqual(container[4], 2)
+        decoded, meta = core.unpack_container(container)
+        self.assertEqual(decoded, bits)
+        self.assertTrue(meta["crc_verified"])
+        self.assertEqual(meta["version"], 2)
+        self.assertEqual(core.bits_to_text(decoded), "Yukti Pingala Codec v2")
+
+    def test_crc_catches_corruption(self):
+        bits = core.text_to_bits("Critical payload data")
+        container = bytearray(core.pack_container(bits, block=8))
+        # Corrupt CRC32 bytes directly
+        corrupted_crc = bytearray(container)
+        corrupted_crc[15] ^= 0xFF
+        with self.assertRaises(core.MeruError) as ctx:
+            core.unpack_container(bytes(corrupted_crc))
+        self.assertEqual(ctx.exception.code, "CHECKSUM_MISMATCH")
+
+        # Corrupt payload byte
+        corrupted_payload = bytearray(container)
+        corrupted_payload[core.CONTAINER_HEADER_SIZE + 1] ^= 0x01
+        with self.assertRaises(core.MeruError):
+            core.unpack_container(bytes(corrupted_payload))
+
+    def test_legacy_v1_autodetect(self):
+        bits = "01011001" * 4
+        legacy_stream = encode(bits, 8)
+        decoded, meta = core.unpack_container(legacy_stream)
+        self.assertEqual(decoded, bits)
+        self.assertEqual(meta["version"], 1)
+        self.assertFalse(meta["crc_verified"])
+
+
 class TestHonestCompression(unittest.TestCase):
     def test_text_does_not_compress(self):
         r = compare(core.text_to_bits("saket"), 8, repeats=2)
@@ -172,6 +209,15 @@ class TestApi(unittest.TestCase):
     def test_generate(self):
         r = self.c.post("/api/generate", json={"preset": "sparse", "length": 100, "seed": 3}).get_json()
         self.assertEqual(r["length"], 100)
+
+    def test_pack_unpack_api(self):
+        pack_res = self.c.post("/api/pack", json={"text": "Vedic Codec", "block": 8}).get_json()
+        self.assertEqual(pack_res["version"], 2)
+        self.assertIn("container_base64", pack_res)
+
+        unpack_res = self.c.post("/api/unpack", json={"container_base64": pack_res["container_base64"], "as_text": True}).get_json()
+        self.assertEqual(unpack_res["text"], "Vedic Codec")
+        self.assertTrue(unpack_res["crc_verified"])
 
 
 if __name__ == "__main__":

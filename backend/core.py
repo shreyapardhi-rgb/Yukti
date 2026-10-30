@@ -4,6 +4,8 @@ Team implementation inspired by Pingala's patterns. NOT a historical compression
 L (laghu) = 0, G (guru) = 1.
 """
 from math import comb
+import struct
+import zlib
 
 HEADER_LEN_BITS = 32   # total input length in bits
 HEADER_BLK_BITS = 8    # block size
@@ -258,3 +260,111 @@ def make_preset(name, length=256, seed=42):
     d = PRESETS[name]["density"]
     rnd = mulberry32(seed)
     return "".join("1" if rnd() < d else "0" for _ in range(length))
+
+
+# ---------- Versioned Container (.meru v2) with CRC32 ----------
+CONTAINER_MAGIC = b"MERU"
+CONTAINER_VERSION_2 = 2
+CONTAINER_HEADER_SIZE = 19  # 4 + 1 + 1 + 4 + 1 + 4 + 4
+
+
+def pack_container(bits, block=8):
+    """Packs bits into versioned .meru v2 binary container with CRC32 integrity check.
+
+    Binary Layout:
+      Offset  Length  Type     Description
+      0       4       bytes    Magic bytes: b"MERU" (ASCII)
+      4       1       uint8    Container format version (0x02)
+      5       1       uint8    Flags (0x00 reserved)
+      6       4       uint32BE Original input bit length
+      10      1       uint8    Block size n (1..64)
+      11      4       uint32BE Payload bit length
+      15      4       uint32BE CRC32 of original data (IEEE 802.3 standard)
+      19      var     bytes    Serialized combinadic (k, rank) payload bytes
+
+    What CRC32 DOES protect against:
+      - Transmission noise, accidental bit flips, incomplete downloads, and truncation.
+    What CRC32 DOES NOT protect against:
+      - Intentional cryptographic forgery or tampering.
+    """
+    _check_bits(bits)
+    if not isinstance(block, int) or isinstance(block, bool) or not 1 <= block <= MAX_BLOCK:
+        raise MeruError("block size must be between 1 and %d" % MAX_BLOCK, code="BAD_BLOCK_SIZE", field="block")
+
+    enc_stream = encode(bits, block=block)
+    payload_bits = enc_stream[HEADER_BITS:]
+    payload_bytes = bits_to_bytes(payload_bits)
+    orig_bytes = bits_to_bytes(bits)
+    crc = zlib.crc32(orig_bytes) & 0xFFFFFFFF
+
+    header = struct.pack(
+        ">4sBBIBII",
+        CONTAINER_MAGIC,
+        CONTAINER_VERSION_2,
+        0,  # flags
+        len(bits),
+        block,
+        len(payload_bits),
+        crc
+    )
+    return header + payload_bytes
+
+
+def unpack_container(data):
+    """Unpacks a .meru container (v2 binary with CRC or v1 raw bits/bytes).
+
+    Returns:
+        tuple (bits, metadata_dict)
+    """
+    if isinstance(data, str):
+        # Legacy v1 string of '0' and '1'
+        bits = decode(data)
+        return bits, {"version": 1, "crc_verified": False}
+
+    if not isinstance(data, (bytes, bytearray)):
+        raise MeruError("container data must be bytes or bit string", code="INVALID_TYPE")
+
+    data = bytes(data)
+    if data.startswith(CONTAINER_MAGIC):
+        # Versioned .meru v2 container
+        if len(data) < CONTAINER_HEADER_SIZE:
+            raise MeruError("container data shorter than v2 header", code="CONTAINER_TOO_SHORT")
+
+        magic, version, flags, orig_len, block, payload_bit_len, expected_crc = struct.unpack(
+            ">4sBBIBII", data[:CONTAINER_HEADER_SIZE]
+        )
+        if version != CONTAINER_VERSION_2:
+            raise MeruError(f"unsupported container version {version}", code="UNSUPPORTED_VERSION")
+        if not 1 <= block <= MAX_BLOCK:
+            raise MeruError(f"container has invalid block size {block}", code="BAD_BLOCK_SIZE")
+
+        expected_payload_bytes = (-(-payload_bit_len // 8)) if payload_bit_len else 0
+        actual_payload_bytes = len(data) - CONTAINER_HEADER_SIZE
+        if actual_payload_bytes < expected_payload_bytes:
+            raise MeruError("container payload truncated", code="PAYLOAD_TRUNCATED")
+
+        raw_payload = data[CONTAINER_HEADER_SIZE:CONTAINER_HEADER_SIZE + expected_payload_bytes]
+        payload_bits = "".join(format(b, "08b") for b in raw_payload)[:payload_bit_len]
+
+        stream = format(orig_len, "032b") + format(block, "08b") + payload_bits
+        bits = decode(stream)
+
+        actual_crc = zlib.crc32(bits_to_bytes(bits)) & 0xFFFFFFFF
+        if actual_crc != expected_crc:
+            raise MeruError(
+                f"checksum mismatch: expected {hex(expected_crc)}, got {hex(actual_crc)}",
+                code="CHECKSUM_MISMATCH"
+            )
+
+        return bits, {
+            "version": 2,
+            "crc_verified": True,
+            "crc32": hex(expected_crc),
+            "original_bits": orig_len,
+            "block": block
+        }
+    else:
+        # Legacy v1 binary bytes format (direct byte encoding of raw 40-bit stream)
+        stream = "".join(format(b, "08b") for b in data)
+        bits = decode(stream)
+        return bits, {"version": 1, "crc_verified": False}

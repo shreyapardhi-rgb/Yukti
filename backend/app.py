@@ -1,4 +1,5 @@
 """Flask API for Yukti. Run: python app.py  ->  http://127.0.0.1:5000"""
+import base64
 import os
 from flask import Flask, jsonify, request, send_from_directory
 
@@ -247,6 +248,45 @@ def compare_route():
     block = _block(d)
     repeats = _parse_int(d.get("repeats", 20), "repeats", min_val=1, max_val=100) if "repeats" in d else 20
     return jsonify(compare(bits, block, repeats=repeats))
+
+
+@app.post("/api/pack")
+def pack():
+    d = _body(allowed_fields={"text", "bits", "block"})
+    bits, mode = _input_bits(d)
+    block = _block(d)
+    container_bytes = core.pack_container(bits, block=block)
+    return jsonify({
+        "version": core.CONTAINER_VERSION_2,
+        "container_base64": base64.b64encode(container_bytes).decode("ascii"),
+        "container_bytes": len(container_bytes),
+        "original_bits": len(bits),
+        "block": block,
+        "crc32": hex(core.zlib.crc32(core.bits_to_bytes(bits)) & 0xFFFFFFFF)
+    })
+
+
+@app.post("/api/unpack")
+def unpack():
+    d = _body(allowed_fields={"container_base64", "as_text"})
+    b64_str = _parse_str(d.get("container_base64"), "container_base64", max_len=MAX_CONTENT_LENGTH * 2)
+    try:
+        container_bytes = base64.b64decode(b64_str, validate=True)
+    except Exception as e:
+        raise core.MeruError("invalid base64 encoding", code="INVALID_BASE64")
+
+    bits, meta = core.unpack_container(container_bytes)
+    out = {
+        "bits": bits,
+        "bit_length": len(bits),
+        "version": meta.get("version", 1),
+        "crc_verified": meta.get("crc_verified", False)
+    }
+    if "crc32" in meta:
+        out["crc32"] = meta["crc32"]
+    if d.get("as_text"):
+        out["text"] = core.bits_to_text(bits)
+    return jsonify(out)
 
 
 @app.get("/")
