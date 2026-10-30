@@ -509,6 +509,8 @@ def corrupt_route():
 
 
 @app.get("/")
+@app.get("/index")
+@app.get("/index.html")
 def index():
     return send_from_directory(FRONT, "index.html")
 
