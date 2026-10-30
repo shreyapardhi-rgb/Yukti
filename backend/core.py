@@ -4,9 +4,9 @@ Team implementation inspired by Pingala's patterns. NOT a historical compression
 L (laghu) = 0, G (guru) = 1.
 """
 import math
-from math import comb
 import struct
 import zlib
+from math import comb
 
 HEADER_LEN_BITS = 32   # total input length in bits
 HEADER_BLK_BITS = 8    # block size

@@ -1,16 +1,23 @@
 """Flask API for Yukti. Run: python app.py  ->  http://127.0.0.1:5000"""
 import base64
+import collections
+import logging
 import math
 import os
-from flask import Flask, jsonify, request, send_from_directory
+import time
 
 import core
 from bench import compare
+from flask import Flask, jsonify, request, send_from_directory
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FRONT = os.path.join(HERE, "..", "frontend")
 app = Flask(__name__)
 app.json.sort_keys = False
+
+SERVER_START_TIME = time.time()
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger("yukti")
 
 MAX_INPUT_BITS = 200000
 MAX_CONTENT_LENGTH = 1 * 1024 * 1024  # 1 MB max request size
@@ -19,9 +26,36 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 # Configurable CORS origins (default: same origin + localhost variants)
 ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "http://127.0.0.1:5000,http://localhost:5000").split(",")
 
+# In-memory sliding window rate limiter: IP -> list of timestamps
+_RATE_LIMIT_STORE = collections.defaultdict(list)
+RATE_LIMIT_WINDOW = 60.0  # 60 seconds
+RATE_LIMIT_MAX = int(os.environ.get("RATE_LIMIT_MAX", "120"))  # requests per window
+EXPENSIVE_ROUTES = {"/api/compare", "/api/sweep", "/api/analyze"}
+
+
+@app.before_request
+def before_request_hook():
+    request._start_time = time.perf_counter()
+    if request.path in EXPENSIVE_ROUTES:
+        ip = request.remote_addr or "127.0.0.1"
+        now = time.time()
+        timestamps = _RATE_LIMIT_STORE[ip]
+        while timestamps and timestamps[0] < now - RATE_LIMIT_WINDOW:
+            timestamps.pop(0)
+        if len(timestamps) >= RATE_LIMIT_MAX:
+            resp = jsonify({
+                "error": {
+                    "code": "RATE_LIMIT_EXCEEDED",
+                    "message": f"Rate limit of {RATE_LIMIT_MAX} requests per minute exceeded for {request.path}"
+                }
+            })
+            resp.headers["Retry-After"] = "60"
+            return resp, 429
+        timestamps.append(now)
+
 
 @app.after_request
-def add_security_headers(resp):
+def after_request_hook(resp):
     origin = request.headers.get("Origin")
     if origin and (origin in ALLOWED_ORIGINS or "*" in ALLOWED_ORIGINS or origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:")):
         resp.headers["Access-Control-Allow-Origin"] = origin
@@ -31,6 +65,15 @@ def add_security_headers(resp):
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["X-Frame-Options"] = "SAMEORIGIN"
+
+    duration_ms = 0.0
+    if hasattr(request, "_start_time"):
+        duration_ms = round((time.perf_counter() - request._start_time) * 1000, 2)
+    input_size = request.content_length or 0
+    logger.info(
+        f"{request.method} {request.path} status={resp.status_code} "
+        f"duration={duration_ms}ms input_bytes={input_size} ip={request.remote_addr or 'local'}"
+    )
     return resp
 
 
@@ -196,7 +239,14 @@ def _block(data, default=8):
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "ok", "name": "Yukti", "header_bits": core.HEADER_BITS})
+    uptime = round(time.time() - SERVER_START_TIME, 2)
+    return jsonify({
+        "status": "ok",
+        "name": "Yukti",
+        "version": "2.0.0",
+        "uptime_seconds": uptime,
+        "header_bits": core.HEADER_BITS
+    })
 
 
 @app.get("/api/prastara")
@@ -302,7 +352,7 @@ def unpack():
     b64_str = _parse_str(d.get("container_base64"), "container_base64", max_len=MAX_CONTENT_LENGTH * 2)
     try:
         container_bytes = base64.b64decode(b64_str, validate=True)
-    except Exception as e:
+    except Exception:
         raise core.MeruError("invalid base64 encoding", code="INVALID_BASE64")
 
     bits, meta = core.unpack_container(container_bytes)
@@ -464,4 +514,7 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "5000"))
+    debug = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true")
+    app.run(host=host, port=port, debug=debug)

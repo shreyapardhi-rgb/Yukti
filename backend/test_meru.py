@@ -6,17 +6,17 @@ import subprocess
 import unittest
 import zlib
 
-from hypothesis import given, settings, strategies as st
-
 import core
-from core import encode, decode, rank_block, unrank_block, MeruError
-from bench import compare
 from app import app
+from bench import compare
+from core import MeruError, decode, encode, rank_block, unrank_block
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 
 class TestPingalaVocabulary(unittest.TestCase):
     def test_prastara_counts(self):
-        for n in range(0, 9):
+        for n in range(9):
             self.assertEqual(len(core.prastara(n)), 2 ** n)
         self.assertEqual(core.prastara(2), ["00", "01", "10", "11"])
 

@@ -1,18 +1,18 @@
 """Size and time comparison against simple baselines."""
 import bz2
-from functools import lru_cache
 import gzip
 import lzma
 import os
 import time
 import zlib
+from functools import lru_cache
 
 from core import (
-    encode,
-    decode,
-    bits_to_bytes,
-    make_preset,
     HEADER_BITS,
+    bits_to_bytes,
+    decode,
+    encode,
+    make_preset,
 )
 
 
@@ -190,4 +190,4 @@ if __name__ == "__main__":
     os.makedirs(docs_dir, exist_ok=True)
     with open(os.path.join(docs_dir, "benchmarks.md"), "w", encoding="utf-8") as f:
         f.write(table + "\n")
-    print(f"\nSaved benchmark results to docs/benchmarks.md")
+    print("\nSaved benchmark results to docs/benchmarks.md")
