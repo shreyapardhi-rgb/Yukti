@@ -165,12 +165,13 @@
 
   <!-- Scripts -->
   <script src="js/core.js"></script>
+  <script src="js/audio.js"></script>
   <script src="js/shared.js"></script>
   <script>
     renderNavbar("patterns");
     renderFooter();
 
-    // 1. Prastara Generator
+    // 1. Prastara Generator with Audio Playback
     let currentPrastaraFilter = "all";
     function renderPrastara() {
       const n = parseInt($("nSyllables").value, 10);
@@ -187,13 +188,24 @@
         if (currentPrastaraFilter === "dense" && k < n - 1) return;
 
         const row = document.createElement("tr");
+        row.style.cursor = "pointer";
+        row.title = "Click to play rhythm";
         const tiles = [...pat].map(c => `<span class="s ${c === '1' ? 'G' : 'L'}">${c === '1' ? 'G' : 'L'}</span>`).join("");
         row.innerHTML = `
           <td><code>${idx}</code></td>
           <td><code style="color:var(--accent);">${pat}</code></td>
           <td>${tiles}</td>
           <td><strong>${k}</strong> / ${n}</td>
+          <td><button class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:11px;" title="Listen to rhythm">▶ Play</button></td>
         `;
+        row.onclick = () => {
+          if (window.YuktiAudio) {
+            row.style.background = "var(--accent-surface)";
+            window.YuktiAudio.playPattern(pat, null, () => {
+              row.style.background = "";
+            });
+          }
+        };
         body.appendChild(row);
       });
     }
@@ -210,7 +222,7 @@
     $("nSyllables").oninput = renderPrastara;
     renderPrastara();
 
-    // 2. Mount Meru Pyramid
+    // 2. Mount Meru Pyramid with Acoustic Chimes & Parent Tracing
     function renderMeru() {
       const rowsCount = parseInt($("meruRowsInput").value, 10);
       $("meruRowsVal").textContent = rowsCount;
@@ -223,6 +235,7 @@
         rowDiv.style.cssText = "display:flex; gap:6px; justify-content:center;";
         row.forEach((val, kIdx) => {
           const span = document.createElement("span");
+          span.id = `meru_${rIdx}_${kIdx}`;
           span.textContent = val.toString();
           span.style.cssText = `
             display:inline-flex; align-items:center; justify-content:center;
@@ -231,16 +244,34 @@
             border-radius:var(--radius-sm); font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600;
             color:var(--text-primary); cursor:pointer; transition:all 0.15s ease;
           `;
+          span.onclick = () => {
+            if (window.YuktiAudio) window.YuktiAudio.playMeruChime(rIdx, kIdx);
+            span.style.transform = "scale(1.25)";
+            setTimeout(() => span.style.transform = "", 250);
+          };
           span.onmouseenter = () => {
             span.style.background = "var(--accent)";
-            span.style.color = "var(--accent-contrast)";
+            span.style.color = "#000";
             span.style.borderColor = "var(--accent)";
-            $("activeCellInfo").textContent = `Row ${rIdx}, k=${kIdx}: C(${rIdx}, ${kIdx}) = ${val}`;
+            $("activeCellInfo").innerHTML = `Row ${rIdx}, k=${kIdx}: <strong>C(${rIdx}, ${kIdx}) = ${val}</strong>`;
+            // Highlight parents
+            if (rIdx > 0) {
+              const p1 = $(`meru_${rIdx-1}_${kIdx-1}`);
+              const p2 = $(`meru_${rIdx-1}_${kIdx}`);
+              if (p1) p1.style.borderColor = "var(--accent-2)";
+              if (p2) p2.style.borderColor = "var(--accent-2)";
+            }
           };
           span.onmouseleave = () => {
             span.style.background = "var(--bg-surface)";
             span.style.color = "var(--text-primary)";
             span.style.borderColor = "var(--border-default)";
+            if (rIdx > 0) {
+              const p1 = $(`meru_${rIdx-1}_${kIdx-1}`);
+              const p2 = $(`meru_${rIdx-1}_${kIdx}`);
+              if (p1) p1.style.borderColor = "var(--border-default)";
+              if (p2) p2.style.borderColor = "var(--border-default)";
+            }
           };
           rowDiv.appendChild(span);
         });

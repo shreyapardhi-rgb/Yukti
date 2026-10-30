@@ -79,6 +79,10 @@ function renderNavbar(activePageId) {
           <span class="status-dot"></span>
           <span id="srvText">Connecting</span>
         </div>
+        <button id="soundToggleBtn" class="sound-toggle-btn" aria-label="Toggle Audio" title="Toggle audio prosody feedback">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <span id="soundLabel">Sound</span>
+        </button>
         <button id="themeToggleBtn" class="theme-btn" aria-label="Toggle Theme">
           <span id="themeIcon">${ICONS.sun}</span>
           <span id="themeLabel" style="font-size:12px;">Theme</span>
@@ -102,8 +106,25 @@ function renderNavbar(activePageId) {
   const toggleBtn = $("themeToggleBtn");
   if (toggleBtn) {
     toggleBtn.onclick = () => {
-      const current = document.documentElement.getAttribute("data-theme") || "light";
-      setTheme(current === "light" ? "dark" : "light");
+      const current = document.documentElement.getAttribute("data-theme") || "dark";
+      setTheme(current === "dark" ? "light" : "dark");
+      if (window.YuktiAudio) window.YuktiAudio.click(800, 0.03);
+    };
+  }
+
+  // Attach sound listener
+  const soundBtn = $("soundToggleBtn");
+  if (soundBtn && window.YuktiAudio) {
+    function syncSound() {
+      const en = window.YuktiAudio.isEnabled();
+      const lbl = $("soundLabel");
+      if (lbl) lbl.textContent = en ? "Sound: ON" : "Sound: OFF";
+      soundBtn.style.color = en ? "var(--accent)" : "var(--text-muted)";
+    }
+    syncSound();
+    soundBtn.onclick = () => {
+      window.YuktiAudio.toggle();
+      syncSound();
     };
   }
 
@@ -111,21 +132,22 @@ function renderNavbar(activePageId) {
   checkBackendHealth();
 }
 
-// Universal Theme Manager (Defaults to Light mode for Vedic aesthetic, remembers choice)
+// Universal Theme Manager (Defaults to Dark mode, remembers choice)
 function setTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("yukti_theme", theme);
+  localStorage.setItem("yukti-theme", theme);
   const isLight = theme === "light";
   const icon = $("themeIcon");
   const label = $("themeLabel");
   if (icon && label) {
-    icon.innerHTML = isLight ? ICONS.sun : ICONS.moon;
-    label.textContent = isLight ? "Light" : "Dark";
+    icon.innerHTML = isLight ? ICONS.moon : ICONS.sun;
+    label.textContent = isLight ? "Dark" : "Light";
   }
 }
 
 function initTheme() {
-  const saved = localStorage.getItem("yukti_theme") || "light";
+  const saved = localStorage.getItem("yukti_theme") || localStorage.getItem("yukti-theme") || "dark";
   setTheme(saved);
 }
 
