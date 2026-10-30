@@ -4,18 +4,74 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Codec Theatre & Integrity Lab — Yukti</title>
+  <meta name="description" content="Interactive combinadic encoder/decoder with step-by-step binomial walk through Mount Meru, .meru v2 CRC32 export, and live bit-flip corruption testing.">
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <style>
     .theatre-stage {
-      background: var(--bits-bg);
-      border: 1px solid var(--border-gold);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-default);
       border-radius: var(--radius-md);
-      padding: 24px;
+      padding: 20px;
       margin-bottom: 20px;
     }
+
+    .theatre-pills-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .slider-row input[type="range"] {
+      flex: 1 1 140px;
+      min-width: 100px;
+    }
+
+    .samples-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .sample-btn {
+      font-size: 12.5px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+
+    .sample-btn:hover {
+      border-color: var(--border-default);
+      background: var(--accent-surface);
+    }
+
+    .sample-btn.active {
+      border-color: var(--accent);
+      background: var(--accent-surface);
+      color: var(--accent);
+    }
+
     .bit-chip {
       display: inline-flex;
       align-items: center;
@@ -25,20 +81,67 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       font-weight: 700;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
       user-select: none;
       transition: all 0.15s ease;
       margin: 1px;
     }
-    .bit-chip.zero { background: var(--laghu-bg); color: var(--laghu-text); border: 1px solid var(--laghu-border); }
-    .bit-chip.one { background: var(--guru-bg); color: var(--guru-text); border: 1px solid var(--guru-border); }
-    .bit-chip.header-bit { border-bottom: 2px solid var(--gold-400); }
-    .bit-chip:hover { transform: scale(1.2); z-index: 10; box-shadow: 0 0 8px var(--gold-400); }
-    .bit-chip.flipped { animation: flash-flip 0.5s; background: var(--ruby-bg) !important; color: var(--ruby) !important; border-color: var(--ruby) !important; }
-    @keyframes flash-flip {
-      0% { transform: scale(1.4); }
-      100% { transform: scale(1); }
+
+    .bit-chip.zero { 
+      background: var(--laghu-bg); 
+      color: var(--laghu-color); 
+      border: 1px solid var(--laghu-border); 
+    }
+
+    .bit-chip.one { 
+      background: var(--guru-bg); 
+      color: var(--guru-color); 
+      border: 1px solid var(--guru-border); 
+    }
+
+    .bit-chip.header-bit { 
+      border-bottom: 2px solid var(--accent); 
+    }
+
+    .bit-chip:hover { 
+      transform: scale(1.15); 
+      z-index: 10; 
+      box-shadow: var(--shadow-sm); 
+    }
+
+    .bit-chip.flipped { 
+      background: var(--danger-bg) !important; 
+      color: var(--danger) !important; 
+      border-color: var(--danger) !important; 
+    }
+
+    .honest-box {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+
+    .honest-box.compress {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--text-primary);
+    }
+
+    .honest-box.expand {
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      color: var(--text-primary);
+    }
+
+    .mono-formula {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      word-break: break-all;
     }
   </style>
 </head>
@@ -47,130 +150,169 @@
   <nav id="siteNav"></nav>
 
   <main class="page-container">
-    <div style="margin-bottom: 32px;">
-      <span class="pill" style="margin-bottom: 12px; color: var(--gold-400);">MODULE 02 &bull; ENCODING ENGINE</span>
-      <h1 class="hero-title">Combinadic Codec Theatre &amp; Lab</h1>
-      <p class="hero-subtitle">
-        Observe live block-by-block ranking walks through Mount Meru, packaging into .meru v2 CRC32 containers, and test bitstream robustness in the corruption simulator.
+    <div style="margin-bottom: 28px;">
+      <div class="pill" style="margin-bottom: 10px; color: var(--accent);">MODULE 02 &bull; CODEC ENGINE</div>
+      <h1 class="display-title" style="font-size: clamp(26px, 3.5vw, 38px);">Combinadic Codec Theatre &amp; Lab</h1>
+      <p class="text-lead" style="max-width:760px;">
+        Observe live block-by-block ranking walks through Mount Meru, package into <code>.meru v2</code> CRC32 containers, and test stream resilience in the corruption lab.
       </p>
     </div>
 
     <!-- Live Encoder & Decoder -->
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-        <h2 class="card-title" style="margin:0;"><span>⚡</span> Live Stream Encoder / Decoder</h2>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <span class="pill" id="verdictChip" style="font-size:12px;">Waiting for input...</span>
+    <div class="card" style="margin-bottom: 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+        <h2 style="font-size: 20px; margin:0; display:flex; align-items:center; gap:8px;">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          <span>Live Stream Encoder / Decoder</span>
+        </h2>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span class="pill" id="verdictChip" style="font-size:12px; font-weight:700;">Evaluating...</span>
+        </div>
+      </div>
+
+      <!-- One-Click Sample Presets: Per Prompt Problem 5 -->
+      <div style="margin-bottom: 16px;">
+        <span class="input-label" style="display:block; margin-bottom:6px;">Curated Test Scenarios:</span>
+        <div class="samples-bar">
+          <button type="button" class="sample-btn active" id="btnSparseSample" onclick="loadSample('sparse')">
+            <span style="color:var(--success);">&bull;</span> Sparse data (compresses)
+          </button>
+          <button type="button" class="sample-btn" id="btnTextSample" onclick="loadSample('text')">
+            <span style="color:var(--danger);">&bull;</span> Plain text (encodes only, and here is why)
+          </button>
         </div>
       </div>
 
       <div class="grid-2" style="margin-bottom:16px;">
         <!-- Input Column -->
         <div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
             <label class="input-label" for="codecInput">Input Source:</label>
             <div style="display:flex; gap:6px;">
-              <button class="btn btn-outline btn-sm active" id="modeText" onclick="setInputMode('text')">Text (UTF-8)</button>
-              <button class="btn btn-outline btn-sm" id="modeBits" onclick="setInputMode('bits')">Raw Bits (0/1)</button>
+              <button class="btn btn-outline btn-sm active" id="modeBits" onclick="setInputMode('bits')">Raw Bits (0/1)</button>
+              <button class="btn btn-outline btn-sm" id="modeText" onclick="setInputMode('text')">Text (UTF-8)</button>
             </div>
           </div>
-          <textarea id="codecInput" rows="4" placeholder="Enter text or bits here...">saket</textarea>
+          <textarea id="codecInput" rows="4" placeholder="Enter text or raw bits (0/1)..." style="font-family:'JetBrains Mono',monospace; font-size:12.5px;"></textarea>
           
-          <div style="display:flex; gap:12px; align-items:center; margin-top:12px;">
-            <label class="input-label" style="margin:0;" for="blockSlider">Block Size (n): <strong id="blockVal" style="color:var(--gold-400);">8</strong></label>
-            <input type="range" id="blockSlider" min="1" max="64" value="8" style="flex:1; cursor:pointer;">
-            <button class="btn btn-outline btn-sm" onclick="setPreset('sparse')">Sparse</button>
-            <button class="btn btn-outline btn-sm" onclick="setPreset('mostly_ones')">Dense</button>
+          <div class="slider-row">
+            <label class="input-label" style="margin:0;" for="blockSlider">
+              Block Size (<em>n</em>): <strong id="blockVal" style="color:var(--accent);">64</strong>
+            </label>
+            <input type="range" id="blockSlider" min="4" max="64" value="64" style="cursor:pointer;">
+            <span class="text-small" style="font-family:'JetBrains Mono',monospace; white-space:nowrap;" id="blockBitsLabel">4..64</span>
+          </div>
+
+          <div id="honestExplanation" class="honest-box compress">
+            <strong>Real Compression Observed:</strong> Sparse bitstream (low Guru density <em>p</em>) maps blocks to small <em>k</em> values where <em>C(n, k)</em> requires far fewer bits than <em>n</em>.
           </div>
         </div>
 
         <!-- Output Summary Column -->
         <div style="display:flex; flex-direction:column; justify-content:space-between;">
           <div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
               <span class="input-label">Encoded Bitstream:</span>
-              <span style="font-size:12px; color:var(--text-muted);">
-                Raw: <strong id="rawBitLen">40</strong> bits &bull; Encoded: <strong id="encBitLen" style="color:var(--gold-400);">92</strong> bits
-              </span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="text-small" style="font-family:'JetBrains Mono',monospace;">
+                  Raw: <strong id="rawBitLen">128</strong>b &bull; Enc: <strong id="encBitLen" style="color:var(--accent);">64</strong>b
+                </span>
+                <button class="copy-btn" onclick="copyEncodedStream()" title="Copy bitstream to clipboard">
+                  <svg class="icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <span>Copy</span>
+                </button>
+              </div>
             </div>
-            <textarea id="codecOutput" rows="4" readonly style="font-size:12px; background:var(--bits-bg);"></textarea>
+            <textarea id="codecOutput" rows="4" readonly style="font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--bg-surface-elevated);"></textarea>
           </div>
 
-          <div style="display:flex; gap:8px; margin-top:10px;">
+          <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
             <button class="btn btn-primary btn-sm" onclick="downloadV2Container()">
-              <span>📥</span> Export .meru v2 File
+              <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Export .meru v2 File</span>
             </button>
             <button class="btn btn-outline btn-sm" onclick="sendToCorruptionLab()">
-              <span>🧪</span> Send to Corruption Lab
+              <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 9l-4 8a2 2 0 0 0 1.8 3h8.4a2 2 0 0 0 1.8-3l-4-8V3h-4z"/></svg>
+              <span>Send to Corruption Lab</span>
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Visual Encoding Theatre -->
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+    <!-- Visual Encoding Theatre: Step-by-Step Rank Walk -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
         <div>
-          <h2 class="card-title" style="margin:0;"><span>🎭</span> Encoding Theatre &bull; Step-by-Step Rank Walk</h2>
-          <p class="card-desc" style="margin:0;">Visualizing how Uddishta maps each block to combinadic coordinates (k, rank).</p>
+          <h2 style="font-size: 20px; margin:0; display:flex; align-items:center; gap:8px;">
+            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Encoding Theatre &bull; Step-by-Step Rank Walk</span>
+          </h2>
+          <p class="text-small" style="margin:2px 0 0;">Visualizing how Uddishta maps each block to combinadic coordinates (<em>k</em>, rank).</p>
         </div>
-        <div style="display:flex; gap:6px;">
-          <button id="theatrePrev" class="btn btn-outline btn-sm">◀ Prev Block</button>
-          <span class="pill" id="theatreBlockIndicator">Block 1 / 5</span>
-          <button id="theatreNext" class="btn btn-outline btn-sm">Next Block ▶</button>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button id="theatrePrev" class="btn btn-outline btn-sm">◀ Prev</button>
+          <span class="pill" id="theatreBlockIndicator" style="font-size:12px; font-family:'JetBrains Mono',monospace;">Block 1 / 2</span>
+          <button id="theatreNext" class="btn btn-outline btn-sm">Next ▶</button>
         </div>
       </div>
 
       <div class="theatre-stage">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:16px;">
-          <div>
-            <span class="input-label">Active Block Pattern:</span>
-            <div id="theatreTiles" style="display:flex; gap:4px; margin-top:4px;"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+          <div style="min-width:0; max-width:100%;">
+            <span class="input-label" style="display:block; margin-bottom:4px;">Active Block Syllables (L=0, G=1):</span>
+            <div id="theatreTiles" style="display:flex; gap:3px; flex-wrap:wrap; max-width:100%; overflow-x:auto; padding:2px 0;"></div>
           </div>
-          <div style="display:flex; gap:16px;">
-            <div class="pill">
-              <span>Gurus (k):</span>
-              <strong id="theatreK" style="color:var(--guru-text);">5</strong>
+          <div class="theatre-pills-row">
+            <div class="status-pill">
+              <span>Gurus (<em>k</em>):</span>
+              <strong id="theatreK" style="color:var(--guru-color);">1</strong>
             </div>
-            <div class="pill">
-              <span>Rank (r):</span>
-              <strong id="theatreRank" style="color:var(--gold-400);">33</strong>
-              <span style="color:var(--text-dim); font-size:11px;">/ C(8,5)=56</span>
+            <div class="status-pill">
+              <span>Rank (<em>r</em>):</span>
+              <strong id="theatreRank" style="color:var(--accent);">0</strong>
+              <span id="theatreCombTotal" style="color:var(--text-muted); font-size:11px;">/ C(64,1)=64</span>
             </div>
-            <div class="pill">
+            <div class="status-pill">
               <span>Bits Allocated:</span>
-              <strong id="theatreBitsUsed">11</strong> bits
+              <strong id="theatreBitsUsed">12</strong> bits
             </div>
           </div>
         </div>
 
-        <!-- Binomial Walk Terms -->
-        <div style="background:var(--bg-card); padding:14px; border-radius:var(--radius-sm); border:1px solid var(--border-gold);">
-          <span class="input-label" style="margin-bottom:8px; display:block;">Active Binomial Sum Terms [Uddishta Walk]:</span>
-          <div id="theatreFormula" style="font-family:'JetBrains Mono'; font-size:13px; color:var(--text-main); line-height:1.8;"></div>
+        <!-- Binomial Walk Terms: Monospace everywhere per Problem 6 -->
+        <div style="background:var(--bg-surface); padding:14px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+          <span class="input-label" style="margin-bottom:6px; display:block;">Active Binomial Sum Terms [Uddishta Walk]:</span>
+          <div id="theatreFormula" class="mono-formula"></div>
         </div>
       </div>
     </div>
 
     <!-- Bit-Flip Corruption Lab -->
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div class="card" id="corruptionLabSection" style="margin-bottom: 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
         <div>
-          <h2 class="card-title" style="margin:0;"><span>🧪</span> Bitstream Corruption Laboratory</h2>
-          <p class="card-desc" style="margin:0;">Flip any single bit in the 40-bit header or block payload to observe real-time error traps and boundary violation reports.</p>
+          <h2 style="font-size: 20px; margin:0; display:flex; align-items:center; gap:8px;">
+            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 9l-4 8a2 2 0 0 0 1.8 3h8.4a2 2 0 0 0 1.8-3l-4-8V3h-4z"/></svg>
+            <span>Bitstream Corruption Laboratory</span>
+          </h2>
+          <p class="text-small" style="margin:2px 0 0;">Flip any single bit in the 40-bit header or block payload to observe live combinadic constraint traps.</p>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="resetCorruption()">Reset Stream</button>
+        <button class="btn btn-outline btn-sm" onclick="resetCorruption()">
+          <svg class="icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span>Reset Stream</span>
+        </button>
       </div>
 
-      <div id="bitGrid" style="display:flex; flex-wrap:wrap; padding:12px; background:var(--bits-bg); border:1px solid var(--border-gold); border-radius:var(--radius-md); max-height:160px; overflow-y:auto; margin-bottom:16px;"></div>
+      <div id="bitGrid" style="display:flex; flex-wrap:wrap; padding:12px; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); max-height:160px; overflow-y:auto; margin-bottom:14px;"></div>
 
-      <div id="corruptionReport" style="padding:16px; border-radius:var(--radius-sm); background:var(--bg-card); border:1px solid var(--border-gold); font-size:13.5px;">
-        <span style="color:var(--text-muted);">Click any bit above to simulate transmission line corruption...</span>
+      <div id="corruptionReport" style="padding:14px 16px; border-radius:var(--radius-sm); background:var(--bg-surface); border:1px solid var(--border-subtle); font-size:13.5px;">
+        <span style="color:var(--text-muted);">Click any bit chip above to simulate transmission line corruption...</span>
       </div>
     </div>
   </main>
 
+  <!-- Universal Footer -->
   <footer id="siteFooter"></footer>
   <div id="toast"></div>
 
@@ -181,28 +323,56 @@
     renderNavbar("codec");
     renderFooter();
 
-    let inputMode = "text";
+    // Default: Sparse 128-bit sample with 2 ones (visibly compresses: 50.0%)
+    const SPARSE_SAMPLE = "00000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010";
+    const PLAIN_TEXT_SAMPLE = "saket";
+
+    let inputMode = "bits";
     let encodedData = null;
     let theatreIndex = 0;
     let corruptedBitIndex = -1;
 
-    function setInputMode(mode) {
-      inputMode = mode;
-      $("modeText").classList.toggle("active", mode === "text");
-      $("modeBits").classList.toggle("active", mode === "bits");
-      if (mode === "text") {
-        $("codecInput").value = "saket";
+    function loadSample(type) {
+      $("btnSparseSample").classList.toggle("active", type === "sparse");
+      $("btnTextSample").classList.toggle("active", type === "text");
+
+      if (type === "sparse") {
+        setInputMode("bits");
+        $("codecInput").value = SPARSE_SAMPLE;
+        $("blockSlider").value = "64";
+        $("honestExplanation").className = "honest-box compress";
+        $("honestExplanation").innerHTML = `
+          <strong>✓ Compression Verified:</strong> Sparse stream with Guru density <em>p &approx; 0.015</em>. 
+          Each 64-bit block has only 1 one (<em>k = 1</em>), requiring only 6 bits for <em>k</em> + 6 bits for rank = <strong>12 bits/block</strong> vs 64 raw bits. 
+          Total: 64 encoded bits vs 128 raw bits (<strong>50.0% ratio</strong>).
+        `;
       } else {
-        $("codecInput").value = "0111001101100001011010110110010101110100";
+        setInputMode("text");
+        $("codecInput").value = PLAIN_TEXT_SAMPLE;
+        $("blockSlider").value = "8";
+        $("honestExplanation").className = "honest-box expand";
+        $("honestExplanation").innerHTML = `
+          <strong>✕ Honest Expansion Explanation:</strong> Plain text has high Shannon entropy (<em>H &approx; 1</em>). 
+          Balanced blocks (e.g. 's' = <code>01110011</code> has <em>k = 5</em>) require 4 bits for <em>k</em> + 6 bits for rank = <strong>10 bits</strong> for an 8-bit byte. 
+          Yukti expands balanced ASCII text because combinadic coordinates require index bits without frequency substitution.
+        `;
       }
       triggerEncode();
     }
 
-    function setPreset(p) {
-      inputMode = "bits";
-      $("modeText").classList.remove("active");
-      $("modeBits").classList.add("active");
-      $("codecInput").value = makePreset(p, 128, 42);
+    function setInputMode(mode) {
+      inputMode = mode;
+      $("modeBits").classList.toggle("active", mode === "bits");
+      $("modeText").classList.toggle("active", mode === "text");
+      if (mode === "text") {
+        if ($("codecInput").value === SPARSE_SAMPLE) {
+          $("codecInput").value = PLAIN_TEXT_SAMPLE;
+        }
+      } else {
+        if ($("codecInput").value === PLAIN_TEXT_SAMPLE) {
+          $("codecInput").value = SPARSE_SAMPLE;
+        }
+      }
       triggerEncode();
     }
 
@@ -214,6 +384,13 @@
       try {
         let bits = inputMode === "text" ? textToBits(raw) : raw;
         if (!/^[01]*$/.test(bits)) throw new Error("Bits must only contain 0 and 1");
+        if (bits.length === 0) {
+          $("rawBitLen").textContent = "0";
+          $("encBitLen").textContent = "0";
+          $("codecOutput").value = "";
+          $("verdictChip").textContent = "No input";
+          return;
+        }
         
         encodedData = encode(bits, block);
         $("rawBitLen").textContent = bits.length;
@@ -223,7 +400,9 @@
         const v = verdict(bits.length, encodedData.encoded.length);
         const chip = $("verdictChip");
         chip.textContent = v.text;
-        chip.style.color = v.good ? "var(--emerald)" : "var(--terracotta)";
+        chip.style.color = v.good ? "var(--success)" : "var(--danger)";
+        chip.style.borderColor = v.good ? "var(--success-border)" : "var(--danger-border)";
+        chip.style.background = v.good ? "var(--success-bg)" : "var(--danger-bg)";
 
         theatreIndex = 0;
         updateTheatre();
@@ -253,9 +432,10 @@
 
       $("theatreK").textContent = row.k;
       $("theatreRank").textContent = row.rank.toString();
+      $("theatreCombTotal").textContent = `/ C(${row.block.length},${row.k}) = ${C(row.block.length, row.k)}`;
       $("theatreBitsUsed").textContent = row.used;
 
-      // Compute binomial terms display
+      // Compute binomial terms display with explicit monospace font
       let n = row.block.length;
       let left = row.k;
       let terms = [];
@@ -265,7 +445,7 @@
         if (row.block[i] === "1") {
           const val = C(rem, left);
           running += val;
-          terms.push(`pos ${i} (bit '1'): C(${rem}, ${left}) = <strong>${val}</strong>`);
+          terms.push(`bit[${i}]='1' &rarr; C(${rem}, ${left}) = ${val}`);
           left--;
         }
       }
@@ -281,7 +461,7 @@
       if (encodedData && theatreIndex < encodedData.rows.length - 1) { theatreIndex++; updateTheatre(); }
     };
 
-    // Corruption Lab Functions
+    // Bit-Flip Corruption Lab Functions
     function renderBitGrid() {
       const grid = $("bitGrid");
       grid.innerHTML = "";
@@ -316,19 +496,19 @@
         diffs += Math.abs(dec.length - origBits.length);
 
         $("corruptionReport").innerHTML = `
-          <div style="color:var(--emerald); font-weight:700; margin-bottom:4px;">
-            ✓ Bit #${idx} Flipped (${orig[idx]} &rarr; ${flipped[idx]}): Stream Decoded with Semantic Data Diff
+          <div style="color:var(--success); font-weight:700; margin-bottom:4px;">
+            ✓ Bit #${idx} Flipped (${orig[idx]} &rarr; ${flipped[idx]}): Stream Decoded with Semantic Diff
           </div>
-          <div style="font-size:12.5px; color:var(--text-muted);">
+          <div style="font-size:12.5px; color:var(--text-secondary);">
             Recovered Length: ${dec.length} bits &bull; Bit Errors: ${diffs} / ${origBits.length} (BER: ${(diffs/origBits.length*100).toFixed(1)}%)
           </div>
         `;
       } catch (err) {
         $("corruptionReport").innerHTML = `
-          <div style="color:var(--ruby); font-weight:700; margin-bottom:4px;">
+          <div style="color:var(--danger); font-weight:700; margin-bottom:4px;">
             ⚠️ Combinadic Constraint Trapped at Bit #${idx} (${orig[idx]} &rarr; ${flipped[idx]})
           </div>
-          <div style="font-size:13px; color:var(--text-main);">
+          <div style="font-size:13px; color:var(--text-primary); font-family:'JetBrains Mono',monospace;">
             Decoder Rejection: <code>${err.message}</code>
           </div>
           <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
@@ -345,8 +525,15 @@
     }
 
     function sendToCorruptionLab() {
-      document.querySelector("#bitGrid").scrollIntoView({ behavior: "smooth" });
+      const el = $("corruptionLabSection");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
       showToast("Encoded stream mapped to Corruption Lab!");
+    }
+
+    function copyEncodedStream() {
+      if (encodedData && encodedData.encoded) {
+        copyText(encodedData.encoded, "Encoded bitstream copied to clipboard!");
+      }
     }
 
     function downloadV2Container() {
@@ -372,7 +559,8 @@
       .catch(e => showToast(`Pack error: ${e.message}`));
     }
 
-    triggerEncode();
+    // Initialize with default sparse sample
+    loadSample("sparse");
   </script>
 </body>
 </html>

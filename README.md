@@ -176,9 +176,53 @@ Encodes a bitstring or UTF-8 text into a MeruCode stream.
     "block": 8,
     "header": "0000000000000000000000000010100000001000",
     "blocks": [
-      {"block": "01110011", "k": 5, "rank": 33, "bits_used": 11}
+      {
+        "block": "01110011",
+        "k": 5,
+        "rank": 15,
+        "group_size": 56,
+        "k_bits": "0101",
+        "rank_bits": "001111",
+        "bits_used": 10
+      },
+      {
+        "block": "01100001",
+        "k": 3,
+        "rank": 30,
+        "group_size": 56,
+        "k_bits": "0011",
+        "rank_bits": "011110",
+        "bits_used": 10
+      },
+      {
+        "block": "01101011",
+        "k": 5,
+        "rank": 12,
+        "group_size": 56,
+        "k_bits": "0101",
+        "rank_bits": "001100",
+        "bits_used": 10
+      },
+      {
+        "block": "01100101",
+        "k": 4,
+        "rank": 26,
+        "group_size": 70,
+        "k_bits": "0100",
+        "rank_bits": "0011010",
+        "bits_used": 11
+      },
+      {
+        "block": "01110100",
+        "k": 4,
+        "rank": 33,
+        "group_size": 70,
+        "k_bits": "0100",
+        "rank_bits": "0100001",
+        "bits_used": 11
+      }
     ],
-    "encoded": "000000000000000000000000001010000000100001010100001...",
+    "encoded": "00000000000000000000000000101000000010000101001111001101111001010011000100001101001000100001",
     "encoded_bits": 92
   }
   ```
@@ -187,7 +231,7 @@ Encodes a bitstring or UTF-8 text into a MeruCode stream.
 Decodes an encoded bitstream back into raw bits or text.
 - **Request:**
   ```json
-  {"encoded": "0000000000000000000000000010100000001000...", "as_text": true}
+  {"encoded": "00000000000000000000000000101000000010000101001111001101111001010011000100001101001000100001", "as_text": true}
   ```
 - **Response:**
   ```json
@@ -208,11 +252,11 @@ Creates a `.meru v2` container with CRC-32 integrity validation.
   ```json
   {
     "version": 2,
-    "container_base64": "TUVSVQIAAAAoCAAAAFyK+Nig...",
-    "container_bytes": 31,
+    "container_base64": "TUVSVQIAAAAAKAgAAAA08KrzYlPN5TENIhA=",
+    "container_bytes": 26,
     "original_bits": 40,
     "block": 8,
-    "crc32": "0x8a3f1290"
+    "crc32": "0xf0aaf362"
   }
   ```
 
@@ -220,7 +264,7 @@ Creates a `.meru v2` container with CRC-32 integrity validation.
 Decodes a `.meru v2` container, verifying CRC-32 integrity.
 - **Request:**
   ```json
-  {"container_base64": "TUVSVQIAAAAoCAAAAFyK+Nig...", "as_text": true}
+  {"container_base64": "TUVSVQIAAAAAKAgAAAA08KrzYlPN5TENIhA=", "as_text": true}
   ```
 - **Response:**
   ```json
@@ -229,7 +273,7 @@ Decodes a `.meru v2` container, verifying CRC-32 integrity.
     "bit_length": 40,
     "version": 2,
     "crc_verified": true,
-    "crc32": "0x8a3f1290",
+    "crc32": "0xf0aaf362",
     "text": "saket"
   }
   ```
@@ -247,19 +291,26 @@ Step-by-step block ranking walk with active binomial terms.
   {
     "total_bits": 5,
     "block_size": 5,
-    "blocks": [{
-      "block": "10110",
-      "k": 3,
-      "rank": 7,
-      "binomial_terms": [
-        {"pos": 0, "bit": "1", "n": 4, "left": 3, "value": 4, "running_sum": 4},
-        {"pos": 1, "bit": "0", "n": 3, "left": 2, "value": 0, "running_sum": 4},
-        {"pos": 2, "bit": "1", "n": 2, "left": 2, "value": 1, "running_sum": 5},
-        {"pos": 3, "bit": "1", "n": 1, "left": 1, "value": 1, "running_sum": 6},
-        {"pos": 4, "bit": "0", "n": 0, "left": 0, "value": 0, "running_sum": 7}
-      ],
-      "running_sum": 7
-    }]
+    "total_blocks": 1,
+    "traced_blocks": 1,
+    "blocks": [
+      {
+        "block": "10110",
+        "k": 3,
+        "rank": 6,
+        "k_bits": 3,
+        "rank_bits": 4,
+        "binomial_terms": [
+          {"pos": 0, "bit": "1", "n": 4, "left": 3, "value": 4, "running_sum": 4},
+          {"pos": 1, "bit": "0", "n": 3, "left": 2, "value": 0, "running_sum": 4},
+          {"pos": 2, "bit": "1", "n": 2, "left": 2, "value": 1, "running_sum": 5},
+          {"pos": 3, "bit": "1", "n": 1, "left": 1, "value": 1, "running_sum": 6},
+          {"pos": 4, "bit": "0", "n": 0, "left": 0, "value": 0, "running_sum": 6}
+        ],
+        "running_sum": 6
+      }
+    ],
+    "mode": "bits"
   }
   ```
 
@@ -267,16 +318,19 @@ Step-by-step block ranking walk with active binomial terms.
 Generates block size vs. compression ratio grid for heatmaps.
 - **Request:**
   ```json
-  {"density": 0.05, "length": 1024, "block_min": 4, "block_max": 64, "step": 8}
+  {"density": 0.05, "length": 1024, "block_min": 4, "block_max": 16, "step": 4}
   ```
 - **Response:**
   ```json
   {
     "density": 0.05,
     "length": 1024,
+    "seed": 42,
     "points": [
-      {"block": 4, "encoded_bits": 768, "ratio": 0.75, "compresses": true},
-      {"block": 12, "encoded_bits": 612, "ratio": 0.5977, "compresses": true}
+      {"block": 4, "encoded_bits": 908, "ratio": 0.8867, "compresses": true},
+      {"block": 8, "encoded_bits": 696, "ratio": 0.6797, "compresses": true},
+      {"block": 12, "encoded_bits": 572, "ratio": 0.5586, "compresses": true},
+      {"block": 16, "encoded_bits": 550, "ratio": 0.5371, "compresses": true}
     ]
   }
   ```
@@ -292,13 +346,18 @@ Computes empirical Shannon entropy $H(p)$ and theoretical minimum size.
   {
     "n_bits": 32,
     "ones": 1,
+    "zeros": 31,
     "p1": 0.03125,
-    "shannon_entropy_per_bit": 0.20194,
+    "p0": 0.96875,
+    "shannon_entropy_per_bit": 0.20062,
     "theoretical_min_bits": 7,
-    "meru_bits": 58,
+    "meru_bits": 59,
     "meru_block": 8,
-    "meru_gap_bits": 51,
-    "explanation": "Shannon entropy H(p) = 0.2019 bits/symbol..."
+    "meru_gap_bits": 52,
+    "meru_gap_pct": 819.02,
+    "zlib_bits": 96,
+    "zlib_gap_bits": 89,
+    "explanation": "Shannon entropy H(p) = 0.2006 bits/symbol. MeruCode encodes each block of size 8 using k_bits + log2(C(n,k)). As block size grows, log2(C(n, pn)) / n -> H(p). For low entropy (sparse/dense), MeruCode compresses toward the Shannon limit. For Bernoulli(0.5) random noise, H(p) = 1.0 and any lossless code with headers expands."
   }
   ```
 
@@ -306,7 +365,7 @@ Computes empirical Shannon entropy $H(p)$ and theoretical minimum size.
 Simulates bit-flip corruption and returns structured error or diff.
 - **Request:**
   ```json
-  {"encoded": "0000000000000000000000000010100000001000...", "position": 10}
+  {"encoded": "00000000000000000000000000101000000010000101001111001101111001010011000100001101001000100001", "position": 10}
   ```
 - **Response (on error detection):**
   ```json
@@ -359,24 +418,40 @@ The test suite contains **82 comprehensive unit, property, and parity tests**:
 
 ### Running Tests Locally
 
+Run the all-in-one verification suite in a single command:
 ```powershell
-# 1. Install dependencies
-pip install -r requirements-dev.txt
+python run_tests.py
+```
+Output:
+```text
+============================================================
+Yukti - Unified Quality & Parity Test Harness
+============================================================
 
-# 2. Run Python test suite
-cd backend
-python -m unittest test_meru.py -v
+[1/3] Running Ruff Linter...
+PASS: Ruff check clean (0.23s)
 
-# 3. Run Node.js cross-language parity test
-cd ..
+[2/3] Running Python Unit & Hypothesis Tests (82 tests)...
+PASS: 82/82 Python unit tests passed (4.75s)
+
+[3/3] Running Cross-Language JS/Python Parity Tests (1,000 cases)...
+PASS: 1,000/1,000 random vectors & 10 golden vectors verified (0.52s)
+
+============================================================
+PASS: 82/82 Python tests | 1,000/1,000 JS parity | Ruff clean
+============================================================
+```
+
+Or run individual test suites:
+```powershell
+# Python unit & hypothesis tests
+cd backend && python -m unittest test_meru.py -v
+
+# Cross-language bit-for-bit parity
 node tests/parity_test.js
 
-# 4. Run Ruff linting
+# Ruff code style
 python -m ruff check .
-
-# 5. Run benchmarks
-cd backend
-python bench.py
 ```
 
 ---

@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Combinatorics & Prosody — Yukti</title>
+  <meta name="description" content="Explore Acharya Pingala's classical algorithms: Prastara exhaustive permutations, Mount Meru Pascal pyramid, Fibonacci Matra partitions, and Web Audio prosodic synthesis.">
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,11 +16,11 @@
   <nav id="siteNav"></nav>
 
   <main class="page-container">
-    <div style="margin-bottom: 32px;">
-      <span class="pill" style="margin-bottom: 12px; color: var(--gold-400);">MODULE 01 &bull; FOUNDATIONS</span>
-      <h1 class="hero-title">Combinatorics &amp; Acoustic Prosody</h1>
-      <p class="hero-subtitle">
-        Explore Acharya Pingala's classical algorithms: Prastara exhaustive permutations, Mount Meru binomial pyramid, Fibonacci Matra partitions, and rhythmic Web Audio prosodic synthesis.
+    <div style="margin-bottom: 28px;">
+      <div class="pill" style="margin-bottom: 10px; color: var(--accent);">MODULE 01 &bull; FOUNDATIONS</div>
+      <h1 class="display-title" style="font-size: clamp(26px, 3.5vw, 38px);">Combinatorics &amp; Acoustic Prosody</h1>
+      <p class="text-lead" style="max-width:760px;">
+        Acharya Pingala's classical algorithms: Prastara binary permutations (2<sup>n</sup>), Mount Meru binomial staircase <em>C(n, k)</em>, Fibonacci Matra partitions, and Web Audio prosodic synthesis.
       </p>
     </div>
 
@@ -26,24 +28,27 @@
     <div class="grid-2">
       <!-- Prastara Card -->
       <div class="card">
-        <h2 class="card-title"><span>⚡</span> Prastara (प्रस्तार) Generator</h2>
-        <p class="card-desc">Exhaustive ordered expansion of all 2<sup>n</sup> binary syllable patterns.</p>
+        <h2 style="font-size: 20px; margin-bottom: 4px; display:flex; align-items:center; gap:8px;">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Prastara (प्रस्तार) Generator</span>
+        </h2>
+        <p class="text-small" style="margin-bottom: 16px;">Exhaustive ordered expansion of all 2<sup>n</sup> binary syllable patterns.</p>
         
-        <div style="display: flex; gap: 16px; align-items: flex-end; margin-bottom: 16px;">
-          <div class="input-group" style="flex: 1; margin: 0;">
-            <label class="input-label" for="nSyllables">Syllables (n): <span id="nVal" style="color:var(--gold-400); font-weight:bold;">3</span></label>
-            <input type="range" id="nSyllables" min="1" max="8" value="3" style="cursor:pointer;">
+        <div style="display: flex; gap: 14px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 140px;">
+            <label class="input-label" for="nSyllables">Syllables (<em>n</em>): <span id="nVal" style="color:var(--accent); font-weight:bold;">3</span></label>
+            <input type="range" id="nSyllables" min="1" max="8" value="3" style="cursor:pointer; width:100%;">
           </div>
-          <div class="pill">
+          <div class="status-pill">
             <span style="color:var(--text-muted);">Sankhya (Total):</span>
-            <span id="prastaraCount" style="color:var(--gold-500); font-weight:700;">8</span>
+            <span id="prastaraCount" style="color:var(--accent); font-weight:700;">8</span>
           </div>
         </div>
 
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px;">
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;">
           <button class="btn btn-outline btn-sm active" id="filterAll" onclick="filterPrastara('all')">All Patterns</button>
-          <button class="btn btn-outline btn-sm" id="filterSparse" onclick="filterPrastara('sparse')">Sparse (k &le; 1)</button>
-          <button class="btn btn-outline btn-sm" id="filterDense" onclick="filterPrastara('dense')">Dense (k &ge; n-1)</button>
+          <button class="btn btn-outline btn-sm" id="filterSparse" onclick="filterPrastara('sparse')">Sparse (<em>k</em> &le; 1)</button>
+          <button class="btn btn-outline btn-sm" id="filterDense" onclick="filterPrastara('dense')">Dense (<em>k</em> &ge; n-1)</button>
         </div>
 
         <div class="table-wrap" style="max-height: 280px; overflow-y: auto;">
@@ -51,9 +56,9 @@
             <thead>
               <tr>
                 <th>Index (Nashta)</th>
-                <th>Binary Bitstream</th>
+                <th>Binary Bits</th>
                 <th>Pingala Syllables</th>
-                <th>Gurus (k)</th>
+                <th>Gurus (<em>k</em>)</th>
               </tr>
             </thead>
             <tbody id="prastaraBody"></tbody>
@@ -63,19 +68,22 @@
 
       <!-- Mount Meru (Pascal) Pyramid Card -->
       <div class="card">
-        <h2 class="card-title"><span>🔺</span> Meru Prastara (मेरु प्रस्तार)</h2>
-        <p class="card-desc">Binomial coefficient staircase C(n, k). The backbone of MeruCode block ranking.</p>
+        <h2 style="font-size: 20px; margin-bottom: 4px; display:flex; align-items:center; gap:8px;">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 22 22 22"/></svg>
+          <span>Meru Prastara (मेरु प्रस्तार)</span>
+        </h2>
+        <p class="text-small" style="margin-bottom: 16px;">Binomial coefficient staircase <em>C(n, k)</em>. The mathematical backbone of MeruCode block ranking.</p>
 
-        <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px;">
-          <label class="input-label" style="margin: 0;" for="meruRowsInput">Pyramid Rows: <span id="meruRowsVal" style="color:var(--gold-400); font-weight:bold;">7</span></label>
-          <input type="range" id="meruRowsInput" min="1" max="9" value="7" style="flex: 1; cursor:pointer;">
+        <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
+          <label class="input-label" style="margin: 0;" for="meruRowsInput">Pyramid Rows: <span id="meruRowsVal" style="color:var(--accent); font-weight:bold;">7</span></label>
+          <input type="range" id="meruRowsInput" min="1" max="9" value="7" style="flex: 1; min-width: 120px; cursor:pointer;">
         </div>
 
-        <div id="meruPyramid" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 8px; background:var(--tri-bg); border-radius:var(--radius-md); border:1px solid var(--border-gold); min-height:240px; overflow-x:auto;"></div>
+        <div id="meruPyramid" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 8px; background:var(--bg-surface-elevated); border-radius:var(--radius-md); border:1px solid var(--border-subtle); min-height:240px; overflow-x:auto;"></div>
         
-        <div style="margin-top: 14px; font-size: 12.5px; color: var(--text-muted); display:flex; justify-content:space-between;">
-          <span>💡 Hover cell to see parent addition rule: <code>C(n,k) = C(n-1, k-1) + C(n-1, k)</code></span>
-          <span id="activeCellInfo" style="font-weight:700; color:var(--gold-400);"></span>
+        <div style="margin-top: 14px; font-size: 12.5px; color: var(--text-muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <span>Parent rule: <code>C(n,k) = C(n-1, k-1) + C(n-1, k)</code></span>
+          <span id="activeCellInfo" style="font-weight:700; color:var(--accent); font-family:'JetBrains Mono',monospace;"></span>
         </div>
       </div>
     </div>
@@ -84,33 +92,39 @@
     <div class="grid-2">
       <!-- Matra Vritta Card -->
       <div class="card">
-        <h2 class="card-title"><span>🎼</span> Matra-Vritta (मात्रावृत्त)</h2>
-        <p class="card-desc">Meter partitions constrained by moraic weight: Laghu (1 matra), Guru (2 matras). Counts follow the Fibonacci sequence!</p>
+        <h2 style="font-size: 20px; margin-bottom: 4px; display:flex; align-items:center; gap:8px;">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><line x1="9" y1="18" x2="9" y2="4"/><line x1="21" y1="16" x2="21" y2="2"/><line x1="9" y1="4" x2="21" y2="2"/></svg>
+          <span>Matra-Vritta (मात्रावृत्त)</span>
+        </h2>
+        <p class="text-small" style="margin-bottom: 16px;">Meter partitions constrained by moraic weight: Laghu (1 matra), Guru (2 matras). Counts follow the Fibonacci sequence.</p>
 
-        <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px;">
-          <div class="input-group" style="flex: 1; margin: 0;">
-            <label class="input-label" for="matraInput">Total Matras (Weight M): <span id="matraVal" style="color:var(--gold-400); font-weight:bold;">5</span></label>
-            <input type="range" id="matraInput" min="1" max="10" value="5" style="cursor:pointer;">
+        <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 140px;">
+            <label class="input-label" for="matraInput">Total Matras (Weight M): <span id="matraVal" style="color:var(--accent); font-weight:bold;">5</span></label>
+            <input type="range" id="matraInput" min="1" max="10" value="5" style="cursor:pointer; width:100%;">
           </div>
-          <div class="pill">
+          <div class="status-pill">
             <span style="color:var(--text-muted);">Count:</span>
-            <span id="matraCount" style="color:var(--emerald); font-weight:700;">8</span>
-            <span style="color:var(--text-dim); font-size:11px;">(Fibonacci F<sub>6</sub>)</span>
+            <span id="matraCount" style="color:var(--success); font-weight:700;">8</span>
+            <span style="color:var(--text-muted); font-size:11px;">(Fibonacci F<sub>6</sub>)</span>
           </div>
         </div>
 
-        <div id="matraList" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 220px; overflow-y: auto; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-gold); border-radius: var(--radius-sm);"></div>
+        <div id="matraList" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 220px; overflow-y: auto; padding: 12px; background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);"></div>
       </div>
 
       <!-- Acoustic Chhandas Engine Card -->
       <div class="card">
-        <h2 class="card-title"><span>🎵</span> Acoustic Chhandas Engine</h2>
-        <p class="card-desc">Web Audio prosodic rhythm synthesizer. Laghu = 1 beat (220 Hz), Guru = 2 beats (165 Hz).</p>
+        <h2 style="font-size: 20px; margin-bottom: 4px; display:flex; align-items:center; gap:8px;">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <span>Acoustic Chhandas Engine</span>
+        </h2>
+        <p class="text-small" style="margin-bottom: 16px;">Web Audio prosodic rhythm synthesizer. Laghu = 1 beat (220 Hz), Guru = 2 beats (165 Hz).</p>
 
         <!-- Meter Presets -->
-        <div class="input-group">
+        <div style="margin-bottom: 12px;">
           <label class="input-label" for="meterPreset">Classical Sanskrit Meter Preset:</label>
-          <select id="meterPreset" style="cursor:pointer;">
+          <select id="meterPreset" style="cursor:pointer; width:100%; padding:8px 10px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit;">
             <option value="gayatri">Gayatri (गायत्री &bull; 24 syllables, 3 &times; 8-syllable padas)</option>
             <option value="anushtubh" selected>Anushtubh (अनुष्टुभ् &bull; 32 syllables, Gita meter)</option>
             <option value="trishtubh">Trishtubh (त्रिष्टुभ् &bull; 44 syllables, 4 &times; 11-syllable padas)</option>
@@ -119,26 +133,27 @@
         </div>
 
         <!-- Interactive Pads -->
-        <div style="display:flex; gap:12px; margin-bottom:16px;">
-          <button id="tapLaghu" class="btn btn-outline" style="flex:1; border-color:var(--laghu-border); color:var(--laghu-text); font-family:'JetBrains Mono'; font-size:16px;">
+        <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+          <button id="tapLaghu" class="btn btn-outline" style="flex:1; min-width:120px; border-color:var(--laghu-border); color:var(--laghu-color); font-family:'JetBrains Mono',monospace;">
             + Laghu (0) <kbd style="font-size:11px; opacity:0.7;">[L]</kbd>
           </button>
-          <button id="tapGuru" class="btn btn-outline" style="flex:1; border-color:var(--guru-border); color:var(--guru-text); font-family:'JetBrains Mono'; font-size:16px;">
+          <button id="tapGuru" class="btn btn-outline" style="flex:1; min-width:120px; border-color:var(--guru-border); color:var(--guru-color); font-family:'JetBrains Mono',monospace;">
             + Guru (1) <kbd style="font-size:11px; opacity:0.7;">[G]</kbd>
           </button>
           <button id="clearPads" class="btn btn-outline btn-sm" title="Clear Pattern">✕</button>
         </div>
 
         <!-- Pattern Display & Audio Controls -->
-        <div id="meterVisualizer" style="display:flex; gap:4px; flex-wrap:wrap; min-height:48px; padding:10px; background:var(--bits-bg); border:1px solid var(--border-gold); border-radius:var(--radius-sm); margin-bottom:14px; align-items:center;"></div>
+        <div id="meterVisualizer" style="display:flex; gap:4px; flex-wrap:wrap; min-height:44px; padding:8px; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); margin-bottom:14px; align-items:center;"></div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="font-size:13px; color:var(--text-muted);">
-            Syllables: <strong id="audioSyllableCount" style="color:var(--text-main);">0</strong> | 
-            Total Matras: <strong id="audioMatraCount" style="color:var(--gold-400);">0</strong>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div class="text-small" style="font-family:'JetBrains Mono',monospace;">
+            Syllables: <strong id="audioSyllableCount" style="color:var(--text-primary);">0</strong> | 
+            Matras: <strong id="audioMatraCount" style="color:var(--accent);">0</strong>
           </div>
-          <button id="playMeterBtn" class="btn btn-primary">
-            <span>▶</span> Play Acoustic Rhythm
+          <button id="playMeterBtn" class="btn btn-primary btn-sm">
+            <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Play Acoustic Rhythm</span>
           </button>
         </div>
       </div>
@@ -175,7 +190,7 @@
         const tiles = [...pat].map(c => `<span class="s ${c === '1' ? 'G' : 'L'}">${c === '1' ? 'G' : 'L'}</span>`).join("");
         row.innerHTML = `
           <td><code>${idx}</code></td>
-          <td><code style="color:var(--gold-400);">${pat}</code></td>
+          <td><code style="color:var(--accent);">${pat}</code></td>
           <td>${tiles}</td>
           <td><strong>${k}</strong> / ${n}</td>
         `;
@@ -212,18 +227,20 @@
           span.style.cssText = `
             display:inline-flex; align-items:center; justify-content:center;
             min-width:34px; height:30px; padding:0 6px;
-            background:var(--tri-span-bg); border:1px solid var(--border-gold);
-            border-radius:6px; font-family:'JetBrains Mono'; font-size:12px; font-weight:600;
-            cursor:pointer; transition:all 0.15s ease;
+            background:var(--bg-surface); border:1px solid var(--border-default);
+            border-radius:var(--radius-sm); font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600;
+            color:var(--text-primary); cursor:pointer; transition:all 0.15s ease;
           `;
           span.onmouseenter = () => {
-            span.style.background = "var(--gold-400)";
-            span.style.color = "#fff";
+            span.style.background = "var(--accent)";
+            span.style.color = "var(--accent-contrast)";
+            span.style.borderColor = "var(--accent)";
             $("activeCellInfo").textContent = `Row ${rIdx}, k=${kIdx}: C(${rIdx}, ${kIdx}) = ${val}`;
           };
           span.onmouseleave = () => {
-            span.style.background = "var(--tri-span-bg)";
-            span.style.color = "inherit";
+            span.style.background = "var(--bg-surface)";
+            span.style.color = "var(--text-primary)";
+            span.style.borderColor = "var(--border-default)";
           };
           rowDiv.appendChild(span);
         });
@@ -246,11 +263,11 @@
       pats.forEach((p, idx) => {
         const chip = document.createElement("div");
         chip.style.cssText = `
-          padding:4px 8px; background:var(--bg-card); border:1px solid var(--border-gold);
-          border-radius:6px; font-size:12px; display:inline-flex; gap:4px; align-items:center;
+          padding:4px 8px; background:var(--bg-surface); border:1px solid var(--border-subtle);
+          border-radius:var(--radius-sm); font-size:12px; display:inline-flex; gap:4px; align-items:center;
         `;
         const tiles = [...p].map(c => `<span class="s ${c}">${c}</span>`).join("");
-        chip.innerHTML = `<span style="color:var(--text-dim); font-size:10px;">#${idx+1}</span> ${tiles}`;
+        chip.innerHTML = `<span style="color:var(--text-muted); font-size:10px;">#${idx+1}</span> ${tiles}`;
         list.appendChild(chip);
       });
     }
@@ -301,7 +318,7 @@
     $("clearPads").onclick = () => { currentMeterString = ""; updateMeterVisualizer(); };
 
     window.addEventListener("keydown", (e) => {
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
       if (e.key === "l" || e.key === "L") $("tapLaghu").click();
       if (e.key === "g" || e.key === "G") $("tapGuru").click();
     });
@@ -330,29 +347,30 @@
       if (isPlaying || !currentMeterString) return;
       isPlaying = true;
       $("playMeterBtn").disabled = true;
-      $("playMeterBtn").innerHTML = "<span>🔊</span> Playing...";
+      $("playMeterBtn").innerHTML = "<span>Playing...</span>";
 
       let i = 0;
       function step() {
         if (i >= currentMeterString.length) {
           isPlaying = false;
           $("playMeterBtn").disabled = false;
-          $("playMeterBtn").innerHTML = "<span>▶</span> Play Acoustic Rhythm";
+          $("playMeterBtn").innerHTML = `
+            <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Play Acoustic Rhythm</span>
+          `;
           [...document.querySelectorAll(".s")].forEach(t => t.style.transform = "");
           return;
         }
 
         const tile = $(`meterTile_${i}`);
         if (tile) {
-          tile.style.transform = "scale(1.3)";
-          tile.style.boxShadow = "0 0 10px var(--gold-400)";
+          tile.style.transform = "scale(1.25)";
         }
 
         const bit = currentMeterString[i];
         playSyllable(bit, () => {
           if (tile) {
             tile.style.transform = "";
-            tile.style.boxShadow = "";
           }
           i++;
           step();

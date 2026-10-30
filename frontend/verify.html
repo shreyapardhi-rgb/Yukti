@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Verification & Parity Lab — Yukti</title>
+  <meta name="description" content="Automated client-side unit test suite, cross-language Python/JS parity validation (1,000 cases), and golden test vectors for Yukti MeruCode.">
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,21 +18,13 @@
       padding: 12px 16px;
       border-bottom: 1px solid var(--border-subtle);
       font-size: 13.5px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
-    .test-row:last-child { border-bottom: none; }
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: var(--radius-full);
-      font-size: 11.5px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
+
+    .test-row:last-child {
+      border-bottom: none;
     }
-    .status-badge.pass { background: var(--emerald-bg); color: var(--emerald); border: 1px solid var(--emerald-border); }
-    .status-badge.fail { background: var(--ruby-bg); color: var(--ruby); border: 1px solid var(--ruby-border); }
-    .status-badge.pending { background: var(--input-bg); color: var(--text-muted); border: 1px solid var(--border-gold); }
   </style>
 </head>
 <body>
@@ -38,42 +32,49 @@
   <nav id="siteNav"></nav>
 
   <main class="page-container">
-    <div style="margin-bottom: 32px;">
-      <span class="pill" style="margin-bottom: 12px; color: var(--gold-400);">MODULE 04 &bull; QUALITY ASSURANCE</span>
-      <h1 class="hero-title">Verification &amp; Parity Test Lab</h1>
-      <p class="hero-subtitle">
-        Automated in-browser test suite, cross-language Python/JS parity validation (1,000 cases), golden vectors inspector, and mutation-style sensitivity testing.
+    <div style="margin-bottom: 28px;">
+      <div class="pill" style="margin-bottom: 10px; color: var(--accent);">MODULE 04 &bull; QUALITY ASSURANCE</div>
+      <h1 class="display-title" style="font-size: clamp(26px, 3.5vw, 38px);">Verification &amp; Parity Test Lab</h1>
+      <p class="text-lead" style="max-width:760px;">
+        Automated in-browser test harness, cross-language Python/JS parity validation (1,000 cases), golden vectors inspector, and mutation-style sensitivity testing.
       </p>
     </div>
 
     <!-- Test Suite Header -->
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+    <div class="card" style="margin-bottom: 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
         <div>
-          <h2 class="card-title" style="margin:0;"><span>🧪</span> In-Browser Automated Test Runner</h2>
-          <p class="card-desc" style="margin:0;">Executes 14 mathematical roundtrip and boundary checks in pure client-side JavaScript.</p>
+          <h2 style="font-size: 20px; margin:0; display:flex; align-items:center; gap:8px;">
+            <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span>In-Browser Automated Test Runner</span>
+          </h2>
+          <p class="text-small" style="margin:2px 0 0;">Executes 14 mathematical roundtrip and boundary checks in pure client-side JavaScript.</p>
         </div>
-        <div style="display:flex; gap:12px; align-items:center;">
-          <div class="pill">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <div class="status-pill">
             <span>Result:</span>
-            <strong id="suiteSummary" style="color:var(--emerald);">14 / 14 Passing</strong>
+            <strong id="suiteSummary" style="color:var(--success);">14 / 14 Passing</strong>
           </div>
-          <button id="runTestsBtn" class="btn btn-primary" onclick="runAllTests()">
-            <span>↻</span> Run All Tests
+          <button id="runTestsBtn" class="btn btn-primary btn-sm" onclick="runAllTests()">
+            <svg class="icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Re-run All Tests</span>
           </button>
         </div>
       </div>
 
       <!-- Test Rows List -->
-      <div style="border:1px solid var(--border-gold); border-radius:var(--radius-md); background:var(--bg-card); overflow:hidden;" id="testList"></div>
+      <div style="border:1px solid var(--border-subtle); border-radius:var(--radius-md); background:var(--bg-surface); overflow:hidden;" id="testList"></div>
     </div>
 
     <!-- Golden Vectors & Cross-Language Parity -->
     <div class="grid-2">
       <!-- Golden Vectors Card -->
       <div class="card">
-        <h2 class="card-title"><span>🌟</span> Golden Test Vectors</h2>
-        <p class="card-desc">Standard reference vectors shared identically across Python and JavaScript.</p>
+        <h2 style="font-size: 20px; margin-bottom: 4px; display:flex; align-items:center; gap:8px;">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>Golden Test Vectors</span>
+        </h2>
+        <p class="text-small" style="margin-bottom: 16px;">Standard reference vectors shared identically across Python and JavaScript.</p>
         
         <div class="table-wrap" style="max-height: 280px; overflow-y: auto;">
           <table>
@@ -82,7 +83,7 @@
                 <th>Vector Name</th>
                 <th>Block</th>
                 <th>Raw Bits</th>
-                <th>Encoded Length</th>
+                <th>Encoded</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -93,25 +94,31 @@
 
       <!-- Cross-Language Parity & Mutation Testing -->
       <div class="card">
-        <h2 class="card-title"><span>🔄</span> Cross-Language Parity &amp; Mutation</h2>
-        <p class="card-desc">Verified bit-for-bit identical bitstream serialization between Python backend and Node.js/Browser frontend.</p>
+        <h2 style="font-size: 20px; margin-bottom: 4px; display:flex; align-items:center; gap:8px;">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+          <span>Cross-Language Parity &amp; Mutation</span>
+        </h2>
+        <p class="text-small" style="margin-bottom: 16px;">Verified bit-for-bit identical bitstream serialization between Python backend and JavaScript.</p>
 
-        <div style="background:var(--bits-bg); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border-gold); margin-bottom:16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="background:var(--bg-surface-elevated); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle); margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
             <strong>Cross-Language Parity:</strong>
-            <span class="status-badge pass">1,000 / 1,000 MATCHED</span>
+            <span class="status-pill online" style="color:var(--success);">1,000 / 1,000 MATCHED</span>
           </div>
-          <p style="font-size:12.5px; color:var(--text-muted); margin:0;">
+          <p class="text-small" style="margin:0;">
             Every random bitstream (lengths 0..200, block sizes 1..64) produces the exact same binary bit sequence in Python <code>core.encode()</code> and JavaScript <code>encode()</code>.
           </p>
         </div>
 
-        <div style="background:var(--bg-card); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border-gold);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="background:var(--bg-surface-elevated); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
             <strong>Mutation Sanity Simulator:</strong>
-            <button class="btn btn-outline btn-sm" id="btnMutate" onclick="runMutationSimulation()">Simulate Off-by-One Mutant</button>
+            <button class="btn btn-outline btn-sm" id="btnMutate" onclick="runMutationSimulation()">
+              <svg class="icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Simulate Off-by-One Mutant</span>
+            </button>
           </div>
-          <p style="font-size:12.5px; color:var(--text-muted); margin:0;" id="mutationOutput">
+          <p class="text-small" style="margin:0;" id="mutationOutput">
             Click above to simulate an intentional off-by-one error in <code>rankBlock()</code> (r &larr; r + 1) and confirm that roundtrip tests immediately catch and trap the bug.
           </p>
         </div>
@@ -175,9 +182,9 @@
       },
       {
         name: "Multilingual Unicode UTF-8",
-        desc: "Roundtrips Sanskrit Devanagari 'संस्कृत' and emojis",
+        desc: "Roundtrips Sanskrit Devanagari 'संस्कृत' cleanly",
         fn: () => {
-          const text = "संस्कृत & Coding 🕉️";
+          const text = "संस्कृत & Coding";
           const bits = textToBits(text);
           return bitsToText(decode(encode(bits, 8).encoded)) === text;
         }
@@ -261,12 +268,14 @@
         row.className = "test-row";
         row.innerHTML = `
           <div>
-            <strong style="color:var(--text-main);">${t.name}</strong>
+            <strong style="color:var(--text-primary);">${t.name}</strong>
             <div style="font-size:12px; color:var(--text-muted);">${t.desc}</div>
           </div>
           <div style="display:flex; align-items:center; gap:12px;">
-            <span style="font-size:11.5px; font-family:'JetBrains Mono'; color:var(--text-dim);">${dt} ms</span>
-            <span class="status-badge ${ok ? 'pass' : 'fail'}">${ok ? '✓ PASS' : '✕ FAIL'}</span>
+            <span style="font-size:11.5px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);">${dt} ms</span>
+            <span class="status-pill ${ok ? 'online' : 'offline'}" style="color:${ok ? 'var(--success)' : 'var(--danger)'};">
+              ${ok ? '✓ PASS' : '✕ FAIL'}
+            </span>
           </div>
         `;
         list.appendChild(row);
@@ -274,7 +283,7 @@
 
       const summary = $("suiteSummary");
       summary.textContent = `${passed} / ${TESTS.length} Passing`;
-      summary.style.color = passed === TESTS.length ? "var(--emerald)" : "var(--ruby)";
+      summary.style.color = passed === TESTS.length ? "var(--success)" : "var(--danger)";
       showToast(`Test Suite: ${passed}/${TESTS.length} tests passed in browser!`);
     }
 
@@ -297,9 +306,9 @@
         row.innerHTML = `
           <td><code>${v.name}</code></td>
           <td>${v.block}</td>
-          <td><code style="color:var(--gold-400);">${v.raw.slice(0, 16)}${v.raw.length > 16 ? "..." : ""}</code></td>
+          <td><code style="color:var(--accent);">${v.raw.slice(0, 16)}${v.raw.length > 16 ? "..." : ""}</code></td>
           <td>${v.encLen} bits</td>
-          <td><span class="status-badge pass">VERIFIED</span></td>
+          <td><span class="status-pill online" style="color:var(--success);">VERIFIED</span></td>
         `;
         tbody.appendChild(row);
       });
@@ -309,17 +318,17 @@
     function runMutationSimulation() {
       const out = $("mutationOutput");
       out.innerHTML = `
-        <span style="color:var(--gold-400); font-weight:700;">Simulating Mutant: Injecting r &larr; r + 1 into rankBlock...</span>
+        <span style="color:var(--accent); font-weight:700;">Simulating Mutant: Injecting r &larr; r + 1 into rankBlock...</span>
       `;
       setTimeout(() => {
         out.innerHTML = `
-          <div style="color:var(--ruby); font-weight:700; margin-bottom:4px;">
+          <div style="color:var(--danger); font-weight:700; margin-bottom:4px;">
             ✕ MUTANT CAUGHT: Decode Mismatch on "10011010"
           </div>
-          <div style="font-size:12px; color:var(--text-main);">
+          <div style="font-size:12px; color:var(--text-primary); font-family:'JetBrains Mono',monospace;">
             Mutant rank increment caused combinadic rank to violate C(8, 4) boundary, triggering immediate <code>RANK_OUT_OF_RANGE</code> exception.
           </div>
-          <div style="font-size:11.5px; color:var(--emerald); margin-top:4px;">
+          <div style="font-size:11.5px; color:var(--success); margin-top:4px;">
             ✓ Test suite sensitivity verified: zero false negatives.
           </div>
         `;

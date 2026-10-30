@@ -50,8 +50,20 @@ for (const v of goldenVectors) {
 console.log(`PASS: All ${passedGolden} golden vectors verified with JS codec`);
 
 // 2. 1,000 Random Inputs Parity
-// If random test inputs are passed as json file or via stdin, verify
 const randomInputPath = path.join(__dirname, "random_cases.json");
+if (!fs.existsSync(randomInputPath)) {
+  // Generate random_cases.json using tests/generate_cases.py so standalone node invocation works
+  try {
+    const { execSync } = require("child_process");
+    execSync("python tests/generate_cases.py", {
+      cwd: path.join(__dirname, ".."),
+      stdio: "ignore"
+    });
+  } catch (err) {
+    // If python failed or not found, proceed
+  }
+}
+
 if (fs.existsSync(randomInputPath)) {
   const randomCases = JSON.parse(fs.readFileSync(randomInputPath, "utf-8"));
   let passedRandom = 0;
@@ -73,5 +85,5 @@ if (fs.existsSync(randomInputPath)) {
   }
   console.log(`PASS: Verified ${passedRandom}/1000 random vectors match Python bit-for-bit!`);
 } else {
-  console.log("No random_cases.json found, skipping random batch test.");
+  console.log("No random_cases.json found and Python not available to generate, skipping random batch test.");
 }
