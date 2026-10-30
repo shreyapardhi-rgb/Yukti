@@ -143,6 +143,16 @@
       color: var(--text-primary);
       word-break: break-all;
     }
+
+    .status-pill.error .status-dot {
+      background: var(--danger);
+      box-shadow: 0 0 8px var(--danger);
+    }
+
+    .status-pill.error {
+      border-color: var(--danger-border);
+      color: var(--danger);
+    }
   </style>
 </head>
 <body>
@@ -223,7 +233,7 @@
                 </button>
               </div>
             </div>
-            <textarea id="codecOutput" rows="4" readonly style="font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--bg-surface-elevated);"></textarea>
+            <textarea id="codecOutput" rows="4" style="font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--bg-surface-elevated);" placeholder="Encoded bitstream appears here, or paste stream to decode..."></textarea>
           </div>
 
           <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
@@ -235,6 +245,54 @@
               <svg class="icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 9l-4 8a2 2 0 0 0 1.8 3h8.4a2 2 0 0 0 1.8-3l-4-8V3h-4z"/></svg>
               <span>Send to Corruption Lab</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decoded Reconstructed Output: Binary -> Original Text -->
+      <div style="margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-subtle);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span class="input-label" style="margin:0; font-size:12.5px; color:var(--text-primary); text-transform:none; letter-spacing:0.02em;">
+              <strong>Decoded Result &bull; Binary &rarr; Original Text Reconstruction</strong>
+            </span>
+          </div>
+          <div id="roundtripBadge" class="status-pill online" style="font-size:11.5px;">
+            <span class="status-dot"></span>
+            <span id="roundtripStatus">100% Roundtrip Match</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Box 1: Reconstructed Binary Bits -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+              <span class="input-label" style="margin:0;">1. Reconstructed Binary Bits (Nashta Unranking):</span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="text-small" style="font-family:'JetBrains Mono',monospace;" id="decodedBitsLen">0b</span>
+                <button class="copy-btn" onclick="copyDecodedBits()" title="Copy reconstructed bits">
+                  <svg class="icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <span>Copy</span>
+                </button>
+              </div>
+            </div>
+            <textarea id="decodedBitsOutput" rows="3" readonly placeholder="Reconstructed binary bits will appear here..." style="font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--bg-surface-elevated);"></textarea>
+          </div>
+
+          <!-- Box 2: Recovered Original Text (Binary to Text) -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+              <span class="input-label" style="margin:0; color:var(--accent);">2. Recovered Original Text (Binary &rarr; Text):</span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="text-small" style="font-family:'JetBrains Mono',monospace;" id="decodedTextLen">0 chars</span>
+                <button class="copy-btn" onclick="copyDecodedText()" title="Copy recovered text">
+                  <svg class="icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <span>Copy</span>
+                </button>
+              </div>
+            </div>
+            <textarea id="decodedTextOutput" rows="3" readonly placeholder="Original text reconstructed from binary will appear here..." style="font-family:'JetBrains Mono',monospace; font-size:13px; background:var(--bg-surface-elevated); border:1px solid rgba(245, 158, 11, 0.4); color:var(--accent); font-weight:600;"></textarea>
           </div>
         </div>
       </div>
@@ -389,7 +447,13 @@
           $("rawBitLen").textContent = "0";
           $("encBitLen").textContent = "0";
           $("codecOutput").value = "";
+          $("decodedBitsOutput").value = "";
+          $("decodedTextOutput").value = "";
+          $("decodedBitsLen").textContent = "0b";
+          $("decodedTextLen").textContent = "0 chars";
           $("verdictChip").textContent = "No input";
+          $("roundtripBadge").className = "status-pill";
+          $("roundtripStatus").textContent = "Awaiting input...";
           return;
         }
         
@@ -405,16 +469,109 @@
         chip.style.borderColor = v.good ? "var(--success-border)" : "var(--danger-border)";
         chip.style.background = v.good ? "var(--success-bg)" : "var(--danger-bg)";
 
+        // Live Roundtrip Decoder: Stream -> Binary -> Original Text
+        const decodedBits = decode(encodedData.encoded);
+        $("decodedBitsOutput").value = decodedBits;
+        $("decodedBitsLen").textContent = `${decodedBits.length}b`;
+
+        let recoveredText = "";
+        let isTextValid = false;
+        try {
+          recoveredText = bitsToText(decodedBits);
+          isTextValid = true;
+        } catch (_) {
+          isTextValid = false;
+        }
+
+        const textOutput = $("decodedTextOutput");
+        const textLen = $("decodedTextLen");
+        const roundtripBadge = $("roundtripBadge");
+        const roundtripStatus = $("roundtripStatus");
+
+        if (inputMode === "text") {
+          textOutput.value = recoveredText;
+          textLen.textContent = `${recoveredText.length} chars`;
+          const isExact = (recoveredText === raw);
+          roundtripBadge.className = isExact ? "status-pill online" : "status-pill error";
+          roundtripStatus.textContent = isExact
+            ? `✓ 100% Roundtrip Match: "${recoveredText}"`
+            : `Mismatch detected`;
+        } else {
+          if (isTextValid) {
+            textOutput.value = recoveredText;
+            textLen.textContent = `${recoveredText.length} chars (UTF-8)`;
+          } else {
+            textOutput.value = `[Binary stream: not valid UTF-8 text (${decodedBits.length} bits)]`;
+            textLen.textContent = `${decodedBits.length} bits (raw)`;
+          }
+          const isExact = (decodedBits === raw);
+          roundtripBadge.className = isExact ? "status-pill online" : "status-pill error";
+          roundtripStatus.textContent = isExact
+            ? `✓ 100% Binary Roundtrip Match (${decodedBits.length}b)`
+            : `Mismatch detected`;
+        }
+
         theatreIndex = 0;
         updateTheatre();
         renderBitGrid();
       } catch (e) {
         $("codecOutput").value = `Error: ${e.message}`;
+        $("decodedBitsOutput").value = `Cannot decode: ${e.message}`;
+        $("decodedTextOutput").value = "";
+        $("decodedBitsLen").textContent = "0b";
+        $("decodedTextLen").textContent = "0 chars";
+        $("roundtripBadge").className = "status-pill error";
+        $("roundtripStatus").textContent = "Decoding failed";
+      }
+    }
+
+    function triggerDecodeFromStream() {
+      const s = $("codecOutput").value.trim();
+      if (!s) {
+        $("decodedBitsOutput").value = "";
+        $("decodedTextOutput").value = "";
+        $("decodedBitsLen").textContent = "0b";
+        $("decodedTextLen").textContent = "0 chars";
+        $("roundtripBadge").className = "status-pill";
+        $("roundtripStatus").textContent = "Awaiting stream...";
+        return;
+      }
+      try {
+        const decBits = decode(s);
+        $("decodedBitsOutput").value = decBits;
+        $("decodedBitsLen").textContent = `${decBits.length}b`;
+        $("encBitLen").textContent = s.length;
+
+        let recText = "";
+        let isTxt = false;
+        try {
+          recText = bitsToText(decBits);
+          isTxt = true;
+        } catch (_) {
+          isTxt = false;
+        }
+
+        if (isTxt) {
+          $("decodedTextOutput").value = recText;
+          $("decodedTextLen").textContent = `${recText.length} chars`;
+        } else {
+          $("decodedTextOutput").value = `[Binary stream: not valid UTF-8 text (${decBits.length} bits)]`;
+          $("decodedTextLen").textContent = "Raw binary";
+        }
+
+        $("roundtripBadge").className = "status-pill online";
+        $("roundtripStatus").textContent = isTxt ? `✓ Stream Decoded: "${recText}"` : `✓ Stream Decoded: ${decBits.length} bits`;
+      } catch (err) {
+        $("decodedBitsOutput").value = `Decode error: ${err.message}`;
+        $("decodedTextOutput").value = "";
+        $("roundtripBadge").className = "status-pill error";
+        $("roundtripStatus").textContent = "Invalid bitstream";
       }
     }
 
     $("codecInput").oninput = triggerEncode;
     $("blockSlider").oninput = triggerEncode;
+    $("codecOutput").oninput = triggerDecodeFromStream;
 
     // Theatre Functions
     function updateTheatre() {
@@ -489,12 +646,35 @@
       // Attempt live decode
       try {
         const dec = decode(flipped);
+        $("decodedBitsOutput").value = dec;
+        $("decodedBitsLen").textContent = `${dec.length}b (corrupted)`;
+
+        let recTxt = "";
+        let isTxt = false;
+        try {
+          recTxt = bitsToText(dec);
+          isTxt = true;
+        } catch (_) {
+          isTxt = false;
+        }
+
+        if (isTxt) {
+          $("decodedTextOutput").value = recTxt;
+          $("decodedTextLen").textContent = `${recTxt.length} chars (corrupted text)`;
+        } else {
+          $("decodedTextOutput").value = `[Corrupted binary: invalid UTF-8 bytes]`;
+          $("decodedTextLen").textContent = `Corrupted`;
+        }
+
         const origBits = inputMode === "text" ? textToBits($("codecInput").value) : $("codecInput").value;
         let diffs = 0;
         for (let j = 0; j < Math.min(dec.length, origBits.length); j++) {
           if (dec[j] !== origBits[j]) diffs++;
         }
         diffs += Math.abs(dec.length - origBits.length);
+
+        $("roundtripBadge").className = "status-pill error";
+        $("roundtripStatus").textContent = `Bit #${idx} Flipped (${diffs} bit errors)`;
 
         $("corruptionReport").innerHTML = `
           <div style="color:var(--success); font-weight:700; margin-bottom:4px;">
@@ -505,6 +685,11 @@
           </div>
         `;
       } catch (err) {
+        $("decodedBitsOutput").value = `[Stream Trapped by Decoder: ${err.message}]`;
+        $("decodedTextOutput").value = `[Cannot decode text: stream trapped at bit #${idx}]`;
+        $("roundtripBadge").className = "status-pill error";
+        $("roundtripStatus").textContent = `Constraint Trapped: ${err.message}`;
+
         $("corruptionReport").innerHTML = `
           <div style="color:var(--danger); font-weight:700; margin-bottom:4px;">
             ⚠️ Combinadic Constraint Trapped at Bit #${idx} (${orig[idx]} &rarr; ${flipped[idx]})
@@ -523,6 +708,7 @@
       corruptedBitIndex = -1;
       $("corruptionReport").innerHTML = `<span style="color:var(--text-muted);">Stream reset. Click any bit above to test corruption...</span>`;
       renderBitGrid();
+      triggerEncode();
     }
 
     function sendToCorruptionLab() {
@@ -534,6 +720,20 @@
     function copyEncodedStream() {
       if (encodedData && encodedData.encoded) {
         copyText(encodedData.encoded, "Encoded bitstream copied to clipboard!");
+      }
+    }
+
+    function copyDecodedBits() {
+      const el = $("decodedBitsOutput");
+      if (el && el.value) {
+        copyText(el.value, "Reconstructed binary bits copied to clipboard!");
+      }
+    }
+
+    function copyDecodedText() {
+      const el = $("decodedTextOutput");
+      if (el && el.value) {
+        copyText(el.value, "Recovered original text copied to clipboard!");
       }
     }
 
